@@ -1,0 +1,2410 @@
+# ImGUI API
+
+Minimal discoverability index for the GMRT **ImGUI** compatibility module. Lists signatures with short descriptions and per-argument notes. Please note that everything here is experimental and may change in future!
+
+This module wraps [Dear ImGui](https://github.com/ocornut/imgui) as a single global class, `ImGui`, whose members are all **static** — call them directly, e.g. `ImGui.Begin("Window")`. Signatures below are taken from `ImGUI.gmidl`.
+
+## Conventions
+
+- Signatures use type annotations after a colon: `name(param : type) : returnType`.
+- A trailing `?` marks an optional parameter; `= value` shows its default.
+- Each function lists its arguments as indented bullets, each tagged with its expected type in the form `` `name` *(type)* — description``. A `returns —` bullet is shown where the IDL documents the return value (the return type also appears at the end of the signature).
+- GameMaker types are used throughout: `real`, `int32`, `int64`, `uint32`, `bool`, `string`, `array`, `object` (a struct), `pointer`, `sprite_asset`, and `any`.
+- Many `flags` parameters expect an ImGui bitmask (e.g. `ImGuiWindowFlags`, `ImGuiTableFlags`). GML definitions for the enumerations are at the [end of this document](#enums) 
+- Several widgets take a `state : object` struct so that ImGui can read/write UI state back to your code (e.g. `{ open, visible }` or `{ selected, visible }`).
+- Functions come in both **British** (`Colour`) and **American** (`Color`) spellings where relevant; the two forms are aliases that bind to the same native implementation.
+
+
+## ImGui
+
+The single global static class exposed by this module. Invoke functions using `ImGui.FunctionName()` 
+
+### Window Functions
+
+- `Begin(name : string, state? : object, flags? : int64 = 0) : bool` - Push a window onto the stack and start appending to it.
+  - `name` *(string)* — unique window identifier; text after `##` is ignored and used only to differentiate windows with identical display names.
+  - `state?` *(object)* — state struct (or undefined): `open` true if window is open, `visible` true if contents are visible.
+  - `flags?` *(int64)* — `ImGuiWindowFlags` combination controlling behavior (NoMove, NoResize, NoCollapse, etc.).
+  - returns — true if the window is open and active (important for subsequent frame drawing).
+- `End()` - Pop the current window from the stack.
+- `BeginChild(name : string, width : real, height : real, flagsChild? : int64 = 0, flagsWindow? : int64 = 0) : bool` - Push a child window and start appending to it.
+  - `name` *(string)* — unique identifier for the child window; allows multiple children with the same display name when suffixed with `##`.
+  - `width` *(real)* — desired width in pixels; use 0 for auto width based on parent content region.
+  - `height` *(real)* — desired height in pixels; use 0 for auto height based on parent content region.
+  - `flagsChild?` *(int64)* — `ImGuiChildFlags` controlling child-specific behavior (Border, AutoResizeY, ResizeX, ResizeY, etc.).
+  - `flagsWindow?` *(int64)* — `ImGuiWindowFlags` controlling window behavior inherited from the parent window.
+  - returns — true if the child window is active this frame (allows conditional drawing of child contents).
+- `EndChild()` - Pop a child window from the stack.
+- `IsWindowAppearing() : bool` - Returns true if the window is appearing this frame.
+- `IsWindowCollapsed() : bool` - Returns true if the window is collapsed.
+- `IsWindowFocused(flags? : int64 = 0) : bool` - Returns true if the window has keyboard focus.
+  - `flags?` *(int64)* — `ImGuiFocusedFlags` controlling focus scope (RootWindow, ChildWindows, etc.).
+  - returns — true if the window has keyboard input focus.
+- `IsWindowHovered(flags? : int64 = 0) : bool` - Returns true if the mouse is hovering the window.
+  - `flags?` *(int64)* — `ImGuiHoveredFlags` controlling hover scope (ChildWindows, RootWindow, AllowWhenBlockedByPopup, etc.).
+  - returns — true if the mouse cursor is over the window content area.
+- `GetWindowDpiScale() : real` - Returns the DPI scale of the current window.
+- `GetWindowX() : real` - Returns the X position of the current window.
+- `GetWindowY() : real` - Returns the Y position of the current window.
+- `GetWindowWidth() : real` - Returns the width of the current window.
+- `GetWindowHeight() : real` - Returns the height of the current window.
+- `GetWindowViewport() : pointer` - Returns the viewport of the current window.
+- `SetWindowFontScale(_scale : real)` - Set the font scale of the current window.
+  - `_scale` *(real)* — font size multiplier; 1.0 is normal size, 2.0 doubles the font size.
+- `SetNextWindowViewport(_id : int32)` - Set the viewport of the next window.
+  - `_id` *(int32)* — target viewport ID; determines which display/monitor the window renders to in multi-viewport setups.
+- `SetNextWindowPos(_x : real, _y : real, _cond? : int32 = 0, _pivotX? : real = 0, _pivotY? : real = 0)` - Set the position of the next window.
+  - `_x` *(real)* — target x position in screen pixels.
+  - `_y` *(real)* — target y position in screen pixels.
+  - `_cond?` *(int32)* — `ImGuiCond` flag (Always, Once, FirstUseEver, etc.) controlling when position is applied.
+  - `_pivotX?` *(real)* — horizontal pivot point (0-1); 0=left edge, 0.5=center, 1=right edge.
+  - `_pivotY?` *(real)* — vertical pivot point (0-1); 0=top edge, 0.5=center, 1=bottom edge.
+- `SetNextWindowSize(_w : real, _h : real, _cond? : int32 = 0)` - Set the size of the next window.
+  - `_w` *(real)* — desired window width in pixels; use 0 to let ImGui calculate based on content.
+  - `_h` *(real)* — desired window height in pixels; use 0 to let ImGui calculate based on content.
+  - `_cond?` *(int32)* — `ImGuiCond` flag controlling when size is applied.
+- `SetNextWindowSizeConstraints(_minWidth : real, _minHeight : real, _maxWidth : real, _maxHeight : real)` - Set the size constraints of the next window.
+  - `_minWidth` *(real)* — minimum allowed window width in pixels; 0 disables the minimum constraint.
+  - `_minHeight` *(real)* — minimum allowed window height in pixels; 0 disables the minimum constraint.
+  - `_maxWidth` *(real)* — maximum allowed window width in pixels; -1 or a very large value disables the maximum constraint.
+  - `_maxHeight` *(real)* — maximum allowed window height in pixels; -1 or a very large value disables the maximum constraint.
+- `SetNextWindowContentSize(_w : real, _h : real)` - Set the content size of the next window.
+  - `_w` *(real)* — desired content width in pixels; affects scrollbar display and minimum window size.
+  - `_h` *(real)* — desired content height in pixels; affects scrollbar display and minimum window size.
+- `SetNextWindowCollapsed(_collapsed : bool, _cond? : int32 = 0)` - Set the collapsed state of the next window.
+  - `_collapsed` *(bool)* — true to collapse the window to the title bar only; false to expand.
+  - `_cond?` *(int32)* — `ImGuiCond` flag controlling when the state is applied.
+- `SetNextWindowFocus()` - Focus the next window.
+- `SetNextWindowScroll(_scrollX : real, _scrollY : real)` - Set the scroll of the next window.
+  - `_scrollX` *(real)* — target horizontal scroll offset in pixels from the left.
+  - `_scrollY` *(real)* — target vertical scroll offset in pixels from the top.
+- `SetNextWindowBgAlpha(_alpha : real)` - Set the background alpha of the next window.
+  - `_alpha` *(real)* — opacity from 0 (fully transparent) to 1 (fully opaque); applied to the window background.
+- `GetScrollX() : real` - Returns the horizontal scroll of the current window.
+- `GetScrollY() : real` - Returns the vertical scroll of the current window.
+- `SetScrollX(_x : real)` - Set the horizontal scroll of the current window.
+  - `_x` *(real)* — target horizontal scroll offset in pixels from the left edge.
+- `SetScrollY(_y : real)` - Set the vertical scroll of the current window.
+  - `_y` *(real)* — target vertical scroll offset in pixels from the top edge.
+- `GetScrollMaxX() : real` - Returns the maximum horizontal scroll of the current window.
+- `GetScrollMaxY() : real` - Returns the maximum vertical scroll of the current window.
+- `SetScrollHereX(_x : real)` - Center the horizontal scroll on the current item.
+  - `_x` *(real)* — center ratio (0-1); 0.0 aligns item to left, 0.5 to center, 1.0 to right.
+- `SetScrollHereY(_y : real)` - Center the vertical scroll on the current item.
+  - `_y` *(real)* — center ratio (0-1); 0.0 aligns item to top, 0.5 to center, 1.0 to bottom.
+- `SetScrollFromPosX(_x : real, _xRatio? : real = 0.5)` - Scroll to a horizontal position with an alignment ratio.
+  - `_x` *(real)* — target horizontal position in pixels to scroll to.
+  - `_xRatio?` *(real)* — alignment ratio (0-1); 0.0 aligns to the left edge, 0.5 to center, 1.0 to the right edge.
+- `SetScrollFromPosY(_y : real, _yRatio? : real = 0.5)` - Scroll to a vertical position with an alignment ratio.
+  - `_y` *(real)* — target vertical position in pixels to scroll to.
+  - `_yRatio?` *(real)* — alignment ratio (0-1); 0.0 aligns to the top edge, 0.5 to center, 1.0 to the bottom edge.
+- `SetWindowPos(_name : string, _xPos : real, _yPos : real, _cond? : int32 = 0)` - Set the position of a named window.
+  - `_name` *(string)* — target window name (empty string = current window); supports `##` suffix for disambiguation.
+  - `_xPos` *(real)* — target x position in screen pixels.
+  - `_yPos` *(real)* — target y position in screen pixels.
+  - `_cond?` *(int32)* — `ImGuiCond` flag controlling when position is applied.
+- `SetWindowSize(_name : string, _width : real, _height : real, _cond? : int32 = 0)` - Set the size of a named window.
+  - `_name` *(string)* — target window name (empty string = current window); supports `##` suffix for disambiguation.
+  - `_width` *(real)* — desired window width in pixels.
+  - `_height` *(real)* — desired window height in pixels.
+  - `_cond?` *(int32)* — `ImGuiCond` flag controlling when size is applied.
+- `SetWindowCollapsed(_name : string, _collapsed : bool, _cond? : int32 = 0)` - Set the collapsed state of a named window.
+  - `_name` *(string)* — target window name (empty string = current window); supports `##` suffix for disambiguation.
+  - `_collapsed` *(bool)* — true to collapse the window to the title bar only; false to expand and show contents.
+  - `_cond?` *(int32)* — `ImGuiCond` flag controlling when the state is applied.
+- `SetWindowFocus(_name : string)` - Focus a named window.
+  - `_name` *(string)* — target window name (empty string = current window); supports `##` suffix for disambiguation.
+
+### API Functions
+
+- `CreateContext() : pointer` - Create a new ImGui context.
+- `DestroyContext(_ctx : pointer)` - Destroy an ImGui context.
+  - `_ctx` *(pointer)* — context pointer to destroy; if null, destroys the current context.
+- `GetCurrentContext() : pointer` - Get the current ImGui context.
+- `SetCurrentContext(_ctx : pointer)` - Make a context current.
+  - `_ctx` *(pointer)* — context pointer to make current; affects subsequent ImGui calls.
+- `ShowDemoWindow(_open? : bool = true) : bool` - Show the built-in demo window.
+  - `_open?` *(bool)* — initial open state; passes the current state back for a persistent window toggle.
+- `ShowMetricsWindow(_open? : bool = true) : bool` - Show the metrics/debug window.
+  - `_open?` *(bool)* — initial open state; passes the current state back for a persistent window toggle.
+- `ShowDebugLogWindow(_open? : bool = true) : bool` - Show the debug log window.
+  - `_open?` *(bool)* — initial open state; passes the current state back for a persistent window toggle.
+- `ShowStackToolWindow(_open? : bool = true) : bool` - Show the stack tool window.
+  - `_open?` *(bool)* — initial open state; passes the current state back for a persistent window toggle.
+- `ShowAboutWindow(_open? : bool = true) : bool` - Show the about window.
+  - `_open?` *(bool)* — initial open state; passes the current state back for a persistent window toggle.
+- `ShowStyleEditor()` - Show the style editor.
+- `ShowStyleSelector(name : string)` - Show a style selector combo.
+  - `name` *(string)* — label for the selector widget; multiple selectors can coexist with different labels.
+- `ShowFontSelector(name : string)` - Show a font selector combo.
+  - `name` *(string)* — label for the selector widget; multiple selectors can coexist with different labels.
+- `ShowUserGuide()` - Show the user guide help block.
+- `GetVersion() : string` - Return the ImGui version string.
+- `PushID(_id)` - Push an ID onto the ID stack.
+  - `_id` *(any)* — ID value to push (string or integer); used for widget identification and state tracking.
+- `PopID()` - Pop an ID from the ID stack.
+- `GetID(_id : string) : int32` - Hash a string into a unique ID.
+  - `_id` *(string)* — string to hash into a unique ID; useful for generating stable IDs for widgets.
+- `PushItemFlag(_itemFlag : int64, _enabled : bool)` - Push an item flag for subsequent items.
+  - `_itemFlag` *(int64)* — `ImGuiItemFlags` value to apply to subsequent items (NoTabStop, ButtonRepeat, etc.).
+  - `_enabled` *(bool)* — true to apply the flag, false to disable this flag push/pop block.
+- `PopItemFlag()` - Pop an item flag.
+- `BeginDisabled(_enabled : bool)` - Begin a disabled block.
+  - `_enabled` *(bool)* — true to disable all interactive widgets, false to keep them enabled.
+- `EndDisabled()` - End a disabled block.
+- `IsItemHovered(_itemFlag? : int64 = 0) : bool` - Returns true if the last item is hovered.
+  - `_itemFlag?` *(int64)* — `ImGuiHoveredFlags` controlling hover scope and behavior (ChildWindows, RootWindow, etc.).
+- `IsItemActive() : bool` - Returns true if the last item is active.
+- `IsItemFocused() : bool` - Returns true if the last item is focused.
+- `IsItemClicked() : bool` - Returns true if the last item is clicked.
+- `IsItemVisible() : bool` - Returns true if the last item is visible.
+- `IsItemEdited() : bool` - Returns true if the last item was edited.
+- `IsItemActivated() : bool` - Returns true if the last item was activated.
+- `IsItemDeactivated() : bool` - Returns true if the last item was deactivated.
+- `IsItemDeactivatedAfterEdit() : bool` - Returns true if the last item was deactivated after an edit.
+- `IsItemToggledOpen() : bool` - Returns true if the last item was toggled open.
+- `IsAnyItemHovered() : bool` - Returns true if any item is hovered.
+- `IsAnyItemActive() : bool` - Returns true if any item is active.
+- `IsAnyItemFocused() : bool` - Returns true if any item is focused.
+- `GetItemID() : uint32` - Get the ID of the last item.
+- `GetItemRectMinX() : real` - Get the minimum X of the last item's rect.
+- `GetItemRectMinY() : real` - Get the minimum Y of the last item's rect.
+- `GetItemRectMaxX() : real` - Get the maximum X of the last item's rect.
+- `GetItemRectMaxY() : real` - Get the maximum Y of the last item's rect.
+- `GetItemRectSizeWidth() : real` - Get the width of the last item's rect.
+- `GetItemRectSizeHeight() : real` - Get the height of the last item's rect.
+- `SetNextItemAllowOverlap()` - Allow the next item to be overlapped by later items.
+- `BeginItemTooltip() : bool` - Begin a tooltip for the last item (only if hovered).
+- `SetItemTooltip(_tip : string)` - Set a tooltip for the last item.
+  - `_tip` *(string)* — tooltip text to display when hovering the item.
+- `IsRectVisible(_x1 : real, _y1 : real, _x2 : real, _y2 : real) : bool` - Returns true if the given rect is visible/not clipped.
+  - `_x1` *(real)* — top-left X position of the rect in screen coordinates.
+  - `_y1` *(real)* — top-left Y position of the rect in screen coordinates.
+  - `_x2` *(real)* — bottom-right X position of the rect in screen coordinates.
+  - `_y2` *(real)* — bottom-right Y position of the rect in screen coordinates.
+- `GetTime() : real` - Get the current ImGui time.
+- `GetFrameCount() : int32` - Get the frame count.
+- `CalcTextWidth(_text : string, _hideTextAfterDoubleDash? : bool = false, _wrapWidth? : real = -1) : real` - Calculate the pixel width of text.
+  - `_text` *(string)* — string to measure in pixels.
+  - `_hideTextAfterDoubleDash?` *(bool)* — when true, text after the `##` separator is ignored in measurement.
+  - `_wrapWidth?` *(real)* — if positive, measures wrapped text; use -1 for no wrapping.
+- `CalcTextHeight(_text : string, _hideTextAfterDoubleDash? : bool = false, _wrapWidth? : real = -1) : real` - Calculate the pixel height of text.
+  - `_text` *(string)* — string to measure in pixels.
+  - `_hideTextAfterDoubleDash?` *(bool)* — when true, text after the `##` separator is ignored in measurement.
+  - `_wrapWidth?` *(real)* — if positive, measures wrapped text; use -1 for no wrapping.
+- `PushAllowKeyboardFocus(_allowKeyboardFocus : bool)` - Push whether widgets may take keyboard focus.
+  - `_allowKeyboardFocus` *(bool)* — true to allow keyboard focus on widgets; false to prevent keyboard interaction.
+- `PopAllowKeyboardFocus()` - Pop the keyboard-focus allowance.
+- `SetKeyboardFocusHere(_offset? : int32 = 0)` - Set keyboard focus to the current (or offset) item.
+  - `_offset?` *(int32)* — widget offset; 0 focuses the current item, positive offsets focus later items.
+- `PushButtonRepeat(_repeat : bool)` - Push whether held buttons repeat.
+  - `_repeat` *(bool)* — true to make buttons repeat when held; false for normal one-press behavior.
+- `PopButtonRepeat()` - Pop the button-repeat setting.
+- `SetItemDefaultFocus()` - Make the last item the default-focused item.
+- `ConfligFlagsGet() : int32` - Get the config flags. *(Note: spelled `ConfligFlagsGet` in the IDL.)*
+- `IniFilename(_filename? : string) : string` - Get or set the ini filename.
+  - `_filename?` *(string)* — when provided, sets the ini file path; when empty, returns the current path.
+- `WantSaveIniSettings(_enable? : bool) : bool` - Get/set whether ini settings should be saved.
+  - `_enable?` *(bool)* — when true, enables ini saving; when false, disables it.
+- `LoadIniSettingsFromDisk(_filename? : string)` - Load ini settings from disk.
+  - `_filename?` *(string)* — path to the ini file; if empty, uses the filename from `IniFilename()`.
+- `LoadIniSettingsFromMemory(_ini? : string)` - Load ini settings from a string.
+  - `_ini?` *(string)* — ini-format settings string to load (typically from `SaveIniSettingsToMemory`).
+- `SaveIniSettingsToDisk(_ini? : string)` - Save ini settings to disk.
+  - `_ini?` *(string)* — filename to save to; if empty, uses the filename from `IniFilename()`.
+- `SaveIniSettingsToMemory() : string` - Save ini settings to a string.
+- `ClearIniSettings()` - Clear ini settings.
+- `ConfigFlagsSet(_flags : uint32)` - Set config flags.
+  - `_flags` *(uint32)* — `ImGuiConfigFlags` bitmask to enable (NavEnableKeyboard, NavEnableGamepad, etc.).
+- `ConfigFlagToggle(_flags : uint32) : uint32` - Toggle config flags.
+  - `_flags` *(uint32)* — `ImGuiConfigFlags` bitmask to toggle on/off.
+- `GetMainViewport() : pointer` - Get the main viewport.
+- `GetViewportID(_viewport : pointer) : uint32` - Get the ID of a viewport.
+  - `_viewport` *(pointer)* — viewport pointer to retrieve the ID from.
+- `LogText(_text : string)` - Append text to the current log.
+  - `_text` *(string)* — text string to append to the current log output.
+- `LogToClipboard(_autoExpandDepth? : int32 = -1)` - Start logging to the clipboard.
+  - `_autoExpandDepth?` *(int32)* — tree expansion depth (-1 for no auto-expand).
+- `LogToTTY(_autoExpandDepth? : int32 = -1)` - Start logging to the TTY.
+  - `_autoExpandDepth?` *(int32)* — tree expansion depth (-1 for no auto-expand).
+- `LogToFile(_autoExpandDepth? : int32 = -1, filename? : string)` - Start logging to a file.
+  - `_autoExpandDepth?` *(int32)* — tree expansion depth (-1 for no auto-expand).
+  - `filename?` *(string)* — output file path to write logs to.
+- `LogFinish()` - Finish logging.
+- `LogButtons()` - Draw the built-in logging buttons.
+- `SetNextFrameWantCaptureKeyboard(_enable : bool)` - Request keyboard capture for the next frame.
+  - `_enable` *(bool)* — true to prevent other input handlers from receiving keyboard input next frame.
+- `SetNextFrameWantCaptureMouse(_enable : bool)` - Request mouse capture for the next frame.
+  - `_enable` *(bool)* — true to prevent other input handlers from receiving mouse input next frame.
+- `WantKeyboardCapture(_enable? : bool) : bool` - Get/set whether ImGui wants keyboard capture.
+  - `_enable?` *(bool)* — when provided, sets the keyboard capture state; when empty, returns the current state.
+- `WantMouseCapture(_enable? : bool) : bool` - Get/set whether ImGui wants mouse capture.
+  - `_enable?` *(bool)* — when provided, sets the mouse capture state; when empty, returns the current state.
+- `WantTextInput(_enable? : bool) : bool` - Get/set whether ImGui wants text input.
+  - `_enable?` *(bool)* — when provided, sets the text input state; when empty, returns the current state.
+- `WantMouseUnlessPopupClose(_enable? : bool) : bool` - Get/set whether ImGui wants the mouse unless a popup is closing.
+  - `_enable?` *(bool)* — when provided, sets the mouse capture state; when empty, returns the current state.
+
+### Widget Functions
+
+- `Button(label : string, width? : real = 0, height? : real = 0) : bool` - Create a button; returns true when clicked.
+  - `label` *(string)* — button display text; can contain `##` for a hidden ID suffix.
+  - `width?` *(real)* — button width in pixels; 0 = auto width based on content.
+  - `height?` *(real)* — button height in pixels; 0 = auto height based on default.
+- `SmallButton(label : string) : bool` - Create a compact button.
+  - `label` *(string)* — button display text; compact version of a regular button.
+- `InvisibleButton(label : string, width? : real = 0, height? : real = 0, flags? : uint32 = 0) : bool` - Create an invisible/hit-test button.
+  - `label` *(string)* — button identifier (not displayed); use `##` suffix to disambiguate.
+  - `width?` *(real)* — hit-test area width in pixels.
+  - `height?` *(real)* — hit-test area height in pixels.
+  - `flags?` *(uint32)* — `ImGuiButtonFlags` controlling behavior (Repeat, PressedOnClick, etc.).
+- `ArrowButton(label : string, flags? : uint32 = 0) : bool` - Create a directional arrow button.
+  - `label` *(string)* — button identifier (not displayed); use `##` suffix to disambiguate.
+  - `flags?` *(uint32)* — `ImGuiDir` direction flag (Up, Down, Left, Right).
+- `Checkbox(label : string, checked : bool) : bool` - Create a checkbox; returns the (possibly toggled) state.
+  - `label` *(string)* — checkbox display text; supports `##` suffix for a hidden ID.
+  - `checked` *(bool)* — checked state; the value is modified when the user clicks.
+- `CheckboxFlags(label : string, flags : uint32, flagsValue : uint32) : uint32` - Create a checkbox that toggles a bit within a flags value.
+  - `label` *(string)* — checkbox display text; supports `##` suffix for a hidden ID.
+  - `flags` *(uint32)* — bitmask containing all flags.
+  - `flagsValue` *(uint32)* — specific flag bit to toggle when clicked.
+- `RadioButton(label : string, checked : bool) : bool` - Create a radio button.
+  - `label` *(string)* — radio button display text; supports `##` suffix for a hidden ID.
+  - `checked` *(bool)* — true if this button is selected.
+- `ProgressBar(frac : real, width : real, height : real, label? : string)` - Draw a progress bar.
+  - `frac` *(real)* — progress completion from 0.0 to 1.0.
+  - `width` *(real)* — bar width in pixels; -1 for full available width.
+  - `height` *(real)* — bar height in pixels; -1 for default height.
+  - `label?` *(string)* — optional text overlay on the bar.
+- `Bullet()` - Draw a bullet point.
+- `TextLink(label : string)` - Draw a clickable text link.
+  - `label` *(string)* — link text displayed to the user.
+- `TextLinkOpenURL(label : string, url : string)` - Draw a text link that opens a URL when clicked.
+  - `label` *(string)* — link text displayed to the user.
+  - `url` *(string)* — URL to open when clicked (http://, https://, mailto:, etc.).
+- `Image(sprite : sprite_asset, subImage : int32, colour? : int32 = 0xffffff, alpha? : real = 1.0, width? : real = 0, height? : real = 0, uvs? : array)` - Draw a sprite image.
+  - `sprite` *(sprite_asset)* — sprite asset to display.
+  - `subImage` *(int32)* — frame index within the sprite; 0 for the first frame.
+  - `colour?` *(int32)* — color tint (RGB); white (0xffffff) for no tint.
+  - `alpha?` *(real)* — opacity from 0 (transparent) to 1 (opaque).
+  - `width?` *(real)* — display width in pixels; 0 = sprite width.
+  - `height?` *(real)* — display height in pixels; 0 = sprite height.
+  - `uvs?` *(array)* — custom UV coordinates [u0,v0,u1,v1]; null for the full sprite.
+- `ImageButton(strID : string, sprite : sprite_asset, subImage : int32, colour? : int32 = 0xffffff, alpha? : real = 1.0, colourBG? : int32 = 0x000000, alphaBG? : real = 1.0, width? : real = 0, height? : real = 0, uvs? : array) : bool` - Draw a clickable sprite image button.
+  - `strID` *(string)* — unique button identifier; use `##` suffix to hide display text.
+  - `sprite` *(sprite_asset)* — sprite asset to display.
+  - `subImage` *(int32)* — frame index within the sprite; 0 for the first frame.
+  - `colour?` *(int32)* — image color tint (RGB); white (0xffffff) for no tint.
+  - `alpha?` *(real)* — image opacity from 0 (transparent) to 1 (opaque).
+  - `colourBG?` *(int32)* — background color (RGB); 0 for transparent.
+  - `alphaBG?` *(real)* — background opacity from 0 (transparent) to 1 (opaque).
+  - `width?` *(real)* — display width in pixels; 0 = sprite width.
+  - `height?` *(real)* — display height in pixels; 0 = sprite height.
+  - `uvs?` *(array)* — custom UV coordinates [u0,v0,u1,v1]; null for the full sprite.
+- `Surface(surface : int32, colour? : int32 = 0xffffff, alpha? : real = 1.0, width? : real = 0, height? : real = 0, uvs? : array)` - Draw a GameMaker surface as an image.
+  - `surface` *(int32)* — surface ID to display (must be valid and exist).
+  - `colour?` *(int32)* — color tint (RGB); white (0xffffff) for no tint.
+  - `alpha?` *(real)* — opacity from 0 (transparent) to 1 (opaque).
+  - `width?` *(real)* — display width in pixels; 0 = surface width.
+  - `height?` *(real)* — display height in pixels; 0 = surface height.
+  - `uvs?` *(array)* — custom UV coordinates [u0,v0,u1,v1]; null for the full surface.
+
+### Tree Functions
+
+- `TreeNode(label : string) : bool` - Create a tree node; returns true when open.
+  - `label` *(string)* — tree node display text; supports `##` suffix for a hidden ID.
+- `TreeNodeEx(label : string, flags? : uint32 = 0) : bool` - Create a tree node with flags.
+  - `label` *(string)* — tree node display text; supports `##` suffix for a hidden ID.
+  - `flags?` *(uint32)* — `ImGuiTreeNodeFlags` controlling appearance and behavior (DefaultOpen, NoAutoOpenOnLog, etc.).
+- `TreePush(label : string)` - Push onto the tree stack (indentation).
+  - `label` *(string)* — tree level identifier; used for indentation tracking.
+- `TreePop()` - Pop from the tree stack.
+- `GetTreeNodeToLabelSpacing() : real` - Get the horizontal spacing between a tree node and its label.
+- `SetNextItemOpen(isOpen : bool, flags? : uint32 = 0)` - Set the open state of the next tree node/collapsing header.
+  - `isOpen` *(bool)* — whether the next node is open.
+  - `flags?` *(uint32)* — `ImGuiCond` flags controlling when the state is applied.
+- `CollapsingHeader(label : string, state? : object, flags? : uint32 = 0) : bool` - Create a collapsing header.
+  - `label` *(string)* — header label.
+  - `state?` *(object)* — state struct carrying whether the header is visible.
+  - `flags?` *(uint32)* — `ImGuiTreeNodeFlags` controlling appearance and behavior.
+
+### Tooltip Functions
+
+- `BeginTooltip()` - Begin a tooltip block.
+- `EndTooltip()` - End a tooltip block.
+- `SetTooltip(tip : string)` - Set a simple tooltip.
+  - `tip` *(string)* — tooltip text to display on hover.
+
+### Text Functions
+
+- `TextUnformatted(text : string)` - Output text without format-string processing.
+  - `text` *(string)* — text string to display; no format string processing.
+- `Text(text : string)` - Output text.
+  - `text` *(string)* — text string to display.
+- `TextColored(text : string, color? : uint32 = 0x00ffffff, alpha? : real = 1.0)` - Output coloured text (American spelling).
+  - `text` *(string)* — text string to display.
+  - `color?` *(uint32)* — color tint (RGB).
+  - `alpha?` *(real)* — opacity from 0 (transparent) to 1 (opaque).
+- `TextColoured(text : string, color? : uint32 = 0x00ffffff, alpha? : real = 1.0)` - Output coloured text (British spelling).
+  - `text` *(string)* — text string to display.
+  - `color?` *(uint32)* — colour tint (RGB).
+  - `alpha?` *(real)* — opacity from 0 (transparent) to 1 (opaque).
+- `TextDisabled(text : string)` - Output greyed/disabled text.
+  - `text` *(string)* — text string to display in the disabled/greyed style.
+- `TextWrapped(text : string)` - Output word-wrapped text.
+  - `text` *(string)* — text string to display with word-wrap enabled.
+- `LabelText(label : string, text : string)` - Output a label followed by a value.
+  - `label` *(string)* — label text displayed inline.
+  - `text` *(string)* — value text displayed after the label.
+- `BulletText(text : string)` - Output bullet-prefixed text.
+  - `text` *(string)* — text string to display with a bullet point prefix.
+
+### Tab Functions
+
+- `BeginTabBar(id : string, flags? : uint32 = 0) : bool` - Begin a tab bar.
+  - `id` *(string)* — unique tab bar identifier; supports `##` suffix for a hidden ID.
+  - `flags?` *(uint32)* — `ImGuiTabBarFlags` controlling tab bar behavior (FittingPolicyScroll, FittingPolicyMask, etc.).
+- `EndTabBar()` - End a tab bar.
+- `BeginTabItem(id : string, state? : object, flags? : uint32 = 0) : bool` - Begin a tab item.
+  - `id` *(string)* — unique tab identifier; supports `##` suffix for a hidden ID.
+  - `state?` *(object)* — when provided, manages the tab open/close state.
+  - `flags?` *(uint32)* — `ImGuiTabItemFlags` controlling tab behavior (UnsavedDocument, etc.).
+- `EndTabItem()` - End a tab item.
+- `TabItemButton(id : string, flags? : uint32 = 0) : bool` - Create a tab bar button.
+  - `id` *(string)* — unique button identifier; supports `##` suffix for a hidden ID.
+  - `flags?` *(uint32)* — `ImGuiTabItemFlags` controlling behavior.
+- `SetTabItemClosed(id : string)` - Mark a tab item to be closed next frame.
+  - `id` *(string)* — unique tab identifier to close on the next frame.
+
+### Table Functions
+
+- `BeginTable(id : string, columns : int32, flags? : uint32 = 0, outerWidth? : real = 0, outerHeight? : real = 0, innerWidth? : real = 0) : bool` - Begin a table.
+  - `id` *(string)* — unique table identifier; supports `##` suffix for a hidden ID.
+  - `columns` *(int32)* — number of columns to create.
+  - `flags?` *(uint32)* — `ImGuiTableFlags` controlling behavior (BordersAll, RowBg, Resizable, Sortable, etc.).
+  - `outerWidth?` *(real)* — outer width in pixels; 0 = full available width.
+  - `outerHeight?` *(real)* — outer height in pixels; 0 = fit content height.
+  - `innerWidth?` *(real)* — inner scrolling width; 0 = outerWidth - borders.
+- `EndTable()` - End a table.
+- `TableNextRow(flags? : uint32 = 0, minRowHeight? : real = 0)` - Move to the next row.
+  - `flags?` *(uint32)* — `ImGuiTableRowFlags` controlling row behavior (Headers, etc.).
+  - `minRowHeight?` *(real)* — minimum row height in pixels; 0 = default row height.
+- `TableNextColumn() : bool` - Move to the next column.
+- `TableSetColumnIndex(columnN : int32) : bool` - Set the current column index.
+  - `columnN` *(int32)* — target column index (0-based).
+- `TableSetupColumn(label : string, flags? : uint32 = 0, initWidthOrHeight? : real = 0, userId? : uint32 = 0)` - Set up a column.
+  - `label` *(string)* — column header text.
+  - `flags?` *(uint32)* — `ImGuiTableColumnFlags` controlling appearance/behavior.
+  - `initWidthOrHeight?` *(real)* — initial width (pixels) or height for stretch columns.
+  - `userId?` *(uint32)* — optional user-defined identifier for sorting/filtering.
+- `TableSetupScrollFreeze(cols : int32, rows : int32)` - Freeze columns/rows while scrolling.
+  - `cols` *(int32)* — number of columns to freeze from the left.
+  - `rows` *(int32)* — number of rows to freeze from the top.
+- `TableHeadersRow()` - Submit a header row using set-up column labels.
+- `TableAngledHeadersRow()` - Submit an angled header row.
+- `TableHeader(label : string)` - Submit a single table header cell.
+  - `label` *(string)* — header text to display.
+- `TableGetHoveredColumn() : int32` - Get the hovered column index.
+- `TableGetColumnIndex() : int32` - Get the current column index.
+- `TableGetColumnName(column : int32) : string` - Get a column's name.
+  - `column` *(int32)* — column index (0-based).
+- `TableGetColumnFlags(column : int32) : uint32` - Get a column's flags.
+  - `column` *(int32)* — column index (0-based).
+- `TableGetRowIndex() : int32` - Get the current row index.
+- `TableSetColumnEnabled(columnN : int32, enabled : bool)` - Show/hide a column.
+  - `columnN` *(int32)* — column index (0-based); -1 for all columns.
+  - `enabled` *(bool)* — true to display, false to hide the column.
+- `TableSetBgColor(target : uint32, col : uint32, columnN? : int32 = -1)` - Set a row/cell background colour (American spelling).
+  - `target` *(uint32)* — `ImGuiTableBgTarget` specifying the row/cell target.
+  - `col` *(uint32)* — color value (RGB).
+  - `columnN?` *(int32)* — column index (-1 for all columns).
+- `TableSetBgColour(target : uint32, col : uint32, columnN? : int32 = -1)` - Set a row/cell background colour (British spelling).
+  - `target` *(uint32)* — `ImGuiTableBgTarget` specifying the row/cell target.
+  - `col` *(uint32)* — colour value (RGB).
+  - `columnN?` *(int32)* — column index (-1 for all columns).
+- `ImGUI__Columns(count : int32, id : string, border : bool)` - Enter legacy column mode. *(Exposed under its native name.)*
+  - `count` *(int32)* — number of columns; 0 ends column mode.
+  - `id` *(string)* — unique identifier for managing column layout persistence.
+  - `border` *(bool)* — true to draw vertical lines between columns.
+- `NextColumn()` - Move to the next legacy column.
+- `GetColumnIndex() : int32` - Get the current legacy column index.
+- `GetColumnWidth(index : int32) : real` - Get a legacy column's width.
+  - `index` *(int32)* — column index (0-based).
+- `SetColumnWidth(index : int32, width : real)` - Set a legacy column's width.
+  - `index` *(int32)* — column index (0-based).
+  - `width` *(real)* — desired column width in pixels.
+- `GetColumnOffset(index : int32) : real` - Get a legacy column's offset.
+  - `index` *(int32)* — column index (0-based).
+- `SetColumnOffset(index : int32, offsetX : real)` - Set a legacy column's offset.
+  - `index` *(int32)* — column index (0-based).
+  - `offsetX` *(real)* — new X offset in pixels.
+- `GetColumnsCount() : int32` - Get the number of legacy columns.
+
+### Style Functions
+
+- `StyleColorsDark()` - Apply the dark colour theme (American spelling).
+- `StyleColorsLight()` - Apply the light colour theme (American spelling).
+- `StyleColorsClassic()` - Apply the classic colour theme (American spelling).
+- `StyleColoursDark()` - Apply the dark colour theme (British spelling).
+- `StyleColoursLight()` - Apply the light colour theme (British spelling).
+- `StyleColoursClassic()` - Apply the classic colour theme (British spelling).
+- `PushStyleColor(idx : uint32, color : uint32, alpha? : real = 1)` - Push a style colour (American spelling).
+  - `idx` *(uint32)* — `ImGuiCol_` color index to modify.
+  - `color` *(uint32)* — RGB color value.
+  - `alpha?` *(real)* — opacity from 0 (transparent) to 1 (opaque).
+- `PopStyleColor(count? : int32 = 1)` - Pop pushed style colours (American spelling).
+  - `count?` *(int32)* — number of colors to pop from the stack.
+- `PushStyleColour(idx : uint32, colour : uint32, alpha? : real = 1)` - Push a style colour (British spelling).
+  - `idx` *(uint32)* — `ImGuiCol_` colour index to modify.
+  - `colour` *(uint32)* — RGB colour value.
+  - `alpha?` *(real)* — opacity from 0 (transparent) to 1 (opaque).
+- `PopStyleColour(count? : int32 = 1)` - Pop pushed style colours (British spelling).
+  - `count?` *(int32)* — number of colours to pop from the stack.
+- `PushStyleVar(idx : uint32, val : real, val2? : real)` - Push a style variable.
+  - `idx` *(uint32)* — `ImGuiStyleVar_` variable index to modify.
+  - `val` *(real)* — first value (used for scalar vars or the X component).
+  - `val2?` *(real)* — second value for vector/size variables; unused for scalar vars.
+- `PushStyleVarX(idx : uint32, val : real)` - Push the X component of a style variable.
+  - `idx` *(uint32)* — `ImGuiStyleVar_` variable index for the X component.
+  - `val` *(real)* — X value in pixels.
+- `PushStyleVarY(idx : uint32, val : real)` - Push the Y component of a style variable.
+  - `idx` *(uint32)* — `ImGuiStyleVar_` variable index for the Y component.
+  - `val` *(real)* — Y value in pixels.
+- `PopStyleVar(count? : int32 = 1)` - Pop pushed style variables.
+  - `count?` *(int32)* — number of style vars to pop from the stack.
+- `GetStyleColor(idx : uint32) : uint32` - Get a style colour (American spelling).
+  - `idx` *(uint32)* — `ImGuiCol_` color index to retrieve.
+- `GetStyleColour(idx : uint32) : uint32` - Get a style colour (British spelling).
+  - `idx` *(uint32)* — `ImGuiCol_` colour index to retrieve.
+- `SetStyleColor(idx : uint32, color : uint32, alpha? : real = 1)` - Set a style colour permanently (American spelling).
+  - `idx` *(uint32)* — `ImGuiCol_` color index to modify.
+  - `color` *(uint32)* — RGB color value to apply permanently.
+  - `alpha?` *(real)* — opacity from 0 (transparent) to 1 (opaque).
+- `SetStyleColour(idx : uint32, colour : uint32, alpha? : real = 1)` - Set a style colour permanently (British spelling).
+  - `idx` *(uint32)* — `ImGuiCol_` colour index to modify.
+  - `colour` *(uint32)* — RGB colour value to apply permanently.
+  - `alpha?` *(real)* — opacity from 0 (transparent) to 1 (opaque).
+- `SetStyleVar(idx : uint32, val : real, val2? : real)` - Set a style variable permanently.
+  - `idx` *(uint32)* — `ImGuiStyleVar_` variable index to modify.
+  - `val` *(real)* — first value for a scalar or the X component.
+  - `val2?` *(real)* — second value for vector/size variables; unused for scalar vars.
+
+### Slider Functions
+
+- `SliderFloat(label : string, val : real, min? : real = 0, max? : real = 0, format? : string, flags? : uint32 = 0) : real` - Float slider.
+  - `label` *(string)* — slider display text; supports `##` suffix for a hidden ID.
+  - `val` *(real)* — current value; modified when the user drags.
+  - `min?` *(real)* — minimum allowed value.
+  - `max?` *(real)* — maximum allowed value.
+  - `format?` *(string)* — printf-style format (e.g., `%.1f`, `%.0f%%`).
+  - `flags?` *(uint32)* — `ImGuiSliderFlags` controlling behavior.
+- `SliderFloat2(label : string, val : array, min? : real = 0, max? : real = 0, format? : string, flags? : uint32 = 0) : any` - 2-component float slider.
+  - `label` *(string)* — slider display text; supports `##` suffix for a hidden ID.
+  - `val` *(array)* — 2-element array with current values; modified when the user drags.
+  - `min?` *(real)* — minimum allowed value for both components.
+  - `max?` *(real)* — maximum allowed value for both components.
+  - `format?` *(string)* — printf-style format (e.g., `%.2f`).
+  - `flags?` *(uint32)* — `ImGuiSliderFlags` controlling behavior.
+- `SliderFloat3(label : string, val : array, min? : real = 0, max? : real = 0, format? : string, flags? : uint32 = 0) : any` - 3-component float slider.
+  - `label` *(string)* — slider display text; supports `##` suffix for a hidden ID.
+  - `val` *(array)* — 3-element array with current values; modified when the user drags.
+  - `min?` *(real)* — minimum allowed value for all components.
+  - `max?` *(real)* — maximum allowed value for all components.
+  - `format?` *(string)* — printf-style format (e.g., `%.2f`).
+  - `flags?` *(uint32)* — `ImGuiSliderFlags` controlling behavior.
+- `SliderFloat4(label : string, val : array, min? : real = 0, max? : real = 0, format? : string, flags? : uint32 = 0) : any` - 4-component float slider.
+  - `label` *(string)* — slider display text; supports `##` suffix for a hidden ID.
+  - `val` *(array)* — 4-element array with current values; modified when the user drags.
+  - `min?` *(real)* — minimum allowed value for all components.
+  - `max?` *(real)* — maximum allowed value for all components.
+  - `format?` *(string)* — printf-style format (e.g., `%.2f`).
+  - `flags?` *(uint32)* — `ImGuiSliderFlags` controlling behavior.
+- `SliderFloatN(label : string, val : array, min? : real = 0, max? : real = 0, format? : string, flags? : uint32 = 0, count? : int32 = -1) : any` - N-component float slider.
+  - `label` *(string)* — slider display text; supports `##` suffix for a hidden ID.
+  - `val` *(array)* — array with current values; modified when the user drags.
+  - `min?` *(real)* — minimum allowed value for all components.
+  - `max?` *(real)* — maximum allowed value for all components.
+  - `format?` *(string)* — printf-style format (e.g., `%.2f`).
+  - `flags?` *(uint32)* — `ImGuiSliderFlags` controlling behavior.
+  - `count?` *(int32)* — number of components; -1 to use the array length.
+- `SliderInt(label : string, val : int32, min? : int32 = 0, max? : int32 = 0, format? : string, flags? : uint32 = 0) : int32` - Integer slider.
+  - `label` *(string)* — slider display text; supports `##` suffix for a hidden ID.
+  - `val` *(int32)* — current integer value; modified when the user drags.
+  - `min?` *(int32)* — minimum allowed value.
+  - `max?` *(int32)* — maximum allowed value.
+  - `format?` *(string)* — printf-style format (e.g., `%d`).
+  - `flags?` *(uint32)* — `ImGuiSliderFlags` controlling behavior.
+- `SliderInt2(label : string, val : array, min? : int32 = 0, max? : int32 = 0, format? : string, flags? : uint32 = 0) : any` - 2-component integer slider.
+  - `label` *(string)* — slider display text; supports `##` suffix for a hidden ID.
+  - `val` *(array)* — 2-element array with current values; modified when the user drags.
+  - `min?` *(int32)* — minimum allowed value for both components.
+  - `max?` *(int32)* — maximum allowed value for both components.
+  - `format?` *(string)* — printf-style format (e.g., `%d`).
+  - `flags?` *(uint32)* — `ImGuiSliderFlags` controlling behavior.
+- `SliderInt3(label : string, val : array, min? : int32 = 0, max? : int32 = 0, format? : string, flags? : uint32 = 0) : any` - 3-component integer slider.
+  - `label` *(string)* — slider display text; supports `##` suffix for a hidden ID.
+  - `val` *(array)* — 3-element array with current values; modified when the user drags.
+  - `min?` *(int32)* — minimum allowed value for all components.
+  - `max?` *(int32)* — maximum allowed value for all components.
+  - `format?` *(string)* — printf-style format (e.g., `%d`).
+  - `flags?` *(uint32)* — `ImGuiSliderFlags` controlling behavior.
+- `SliderInt4(label : string, val : array, min? : int32 = 0, max? : int32 = 0, format? : string, flags? : uint32 = 0) : any` - 4-component integer slider.
+  - `label` *(string)* — slider display text; supports `##` suffix for a hidden ID.
+  - `val` *(array)* — 4-element array with current values; modified when the user drags.
+  - `min?` *(int32)* — minimum allowed value for all components.
+  - `max?` *(int32)* — maximum allowed value for all components.
+  - `format?` *(string)* — printf-style format (e.g., `%d`).
+  - `flags?` *(uint32)* — `ImGuiSliderFlags` controlling behavior.
+- `SliderIntN(label : string, val : array, min? : int32 = 0, max? : int32 = 0, format? : string, flags? : uint32 = 0, count? : int32 = -1) : any` - N-component integer slider.
+  - `label` *(string)* — slider display text; supports `##` suffix for a hidden ID.
+  - `val` *(array)* — array with current values; modified when the user drags.
+  - `min?` *(int32)* — minimum allowed value for all components.
+  - `max?` *(int32)* — maximum allowed value for all components.
+  - `format?` *(string)* — printf-style format (e.g., `%d`).
+  - `flags?` *(uint32)* — `ImGuiSliderFlags` controlling behavior.
+  - `count?` *(int32)* — number of components; -1 to use the array length.
+- `VSliderFloat(label : string, width : real, height : real, val : real, min? : real = 0, max? : real = 0, format? : string, flags? : uint32 = 0) : real` - Vertical float slider.
+  - `label` *(string)* — slider identifier; supports `##` suffix for a hidden ID.
+  - `width` *(real)* — widget width in pixels.
+  - `height` *(real)* — widget height in pixels.
+  - `val` *(real)* — current value; modified when the user drags.
+  - `min?` *(real)* — minimum allowed value.
+  - `max?` *(real)* — maximum allowed value.
+  - `format?` *(string)* — printf-style format (e.g., `%.1f`).
+  - `flags?` *(uint32)* — `ImGuiSliderFlags` controlling behavior.
+- `VSliderInt(label : string, width : real, height : real, val : int32, min? : int32 = 0, max? : int32 = 0, format? : string, flags? : uint32 = 0) : int32` - Vertical integer slider.
+  - `label` *(string)* — slider identifier; supports `##` suffix for a hidden ID.
+  - `width` *(real)* — widget width in pixels.
+  - `height` *(real)* — widget height in pixels.
+  - `val` *(int32)* — current value; modified when the user drags.
+  - `min?` *(int32)* — minimum allowed value.
+  - `max?` *(int32)* — maximum allowed value.
+  - `format?` *(string)* — printf-style format (e.g., `%d`).
+  - `flags?` *(uint32)* — `ImGuiSliderFlags` controlling behavior.
+- `SliderAngle(label : string, val : real, min? : real = 0, max? : real = 0, format? : string, flags? : uint32 = 0) : real` - Angle slider (value in radians).
+  - `label` *(string)* — slider display text; supports `##` suffix for a hidden ID.
+  - `val` *(real)* — angle in radians; modified when the user drags.
+  - `min?` *(real)* — minimum angle in radians.
+  - `max?` *(real)* — maximum angle in radians.
+  - `format?` *(string)* — printf-style format (e.g., `%.0f deg`).
+  - `flags?` *(uint32)* — `ImGuiSliderFlags` controlling behavior.
+
+### Selectable Functions
+
+- `Selectable(label : string, selectable? : bool = false, flags? : uint32 = 0, width? : real = 0, height? : real = 0) : bool` - Create a selectable item.
+  - `label` *(string)* — selectable item text; supports `##` suffix for a hidden ID.
+  - `selectable?` *(bool)* — current selection state; modified when the user clicks.
+  - `flags?` *(uint32)* — `ImGuiSelectableFlags` controlling behavior (SpanAllColumns, AllowDoubleClick, etc.).
+  - `width?` *(real)* — selectable width in pixels; 0 = full available width.
+  - `height?` *(real)* — selectable height in pixels; 0 = default row height.
+- `IsItemToggledSelection() : bool` - Returns true if the selection state of the last item was toggled.
+- `CreateMultiSelectBasicStorage(struct : object) : pointer` - Create basic multi-select storage.
+  - `struct` *(object)* — storage struct object to initialize.
+- `DestroyMultiSelectBasicStorage(storage : pointer)` - Destroy multi-select storage.
+  - `storage` *(pointer)* — storage pointer to deallocate.
+- `BeginMultiSelect(flags : uint32, size : int32, itemsCount : int32) : pointer` - Begin a multi-select scope.
+  - `flags` *(uint32)* — `ImGuiMultiSelectFlags` controlling multi-select behavior.
+  - `size` *(int32)* — size of the selection storage structure.
+  - `itemsCount` *(int32)* — total number of items in the list.
+- `SelectionStorageApplyRequests(storage : pointer, multiSelectIO : pointer)` - Apply selection requests to storage.
+  - `storage` *(pointer)* — selection storage to update.
+  - `multiSelectIO` *(pointer)* — multi-select input/output pointer with selection requests.
+- `EndMultiSelect() : pointer` - End a multi-select scope.
+- `SetNextItemSelectionUserData(id : int64)` - Set the selection user-data ID for the next item.
+  - `id` *(int64)* — user-defined ID for item selection tracking.
+- `SelectionStorageContains(storage : pointer, id : uint32) : bool` - Returns true if the storage contains a selected ID.
+  - `storage` *(pointer)* — selection storage to query.
+  - `id` *(uint32)* — item ID to check for selection.
+- `SelectionStorageSize(storage : pointer, size? : int32) : int32` - Get (or set) the selection storage size.
+  - `storage` *(pointer)* — selection storage to query.
+  - `size?` *(int32)* — optional new size to set.
+
+### Popup Functions
+
+- `BeginPopup(strId : string, flags? : uint32 = 0) : bool` - Begin a popup.
+  - `strId` *(string)* — unique popup identifier; supports `##` suffix for a hidden ID.
+  - `flags?` *(uint32)* — `ImGuiWindowFlags` controlling popup behavior.
+- `BeginPopupModal(strId : string, state? : object, flags? : uint32 = 0) : bool` - Begin a modal popup.
+  - `strId` *(string)* — popup ID.
+  - `state?` *(object)* — state struct (or undefined): `open` true if open, `visible` true if contents are visible.
+  - `flags?` *(uint32)* — `ImGuiWindowFlags` controlling popup behavior.
+- `EndPopup()` - End a popup.
+- `OpenPopup(strId : string, flags? : uint32 = 0)` - Open a popup by ID.
+  - `strId` *(string)* — popup ID.
+  - `flags?` *(uint32)* — `ImGuiPopupFlags` controlling open behavior.
+- `OpenPopupOnItemClick(strId? : string, flags? : uint32 = 8)` - Open a popup when the last item is clicked.
+  - `strId?` *(string)* — popup ID.
+  - `flags?` *(uint32)* — `ImGuiPopupFlags` controlling open behavior.
+- `CloseCurrentPopup()` - Close the current popup.
+- `BeginPopupContextItem(strId? : string, flags? : uint32 = 8) : bool` - Begin a context menu popup for the last item.
+  - `strId?` *(string)* — popup ID.
+  - `flags?` *(uint32)* — `ImGuiPopupFlags` controlling behavior.
+- `BeginPopupContextWindow(strId? : string, flags? : uint32 = 8) : bool` - Begin a context menu popup for the window.
+  - `strId?` *(string)* — popup ID.
+  - `flags?` *(uint32)* — `ImGuiPopupFlags` controlling behavior.
+- `BeginPopupContextVoid(strId? : string, flags? : uint32 = 8) : bool` - Begin a context menu popup over empty space.
+  - `strId?` *(string)* — popup ID.
+  - `flags?` *(uint32)* — `ImGuiPopupFlags` controlling behavior.
+- `IsPopupOpen(strId : string, flags? : uint32 = 0) : bool` - Returns true if a popup is open.
+  - `strId` *(string)* — popup ID.
+  - `flags?` *(uint32)* — `ImGuiPopupFlags` controlling the query.
+
+### Plot Functions
+
+- `PlotLines(strId : string, values : array, offset? : int32 = 0, overlayText? : string, minScale? : real = 0, maxScale? : real = 0, graphWidth? : real = 0, graphHeight? : real = 0, valueCount? : int32 = -1)` - Plot a line graph.
+  - `strId` *(string)* — plot ID.
+  - `values` *(array)* — values array.
+  - `offset?` *(int32)* — index offset into the values array.
+  - `overlayText?` *(string)* — text drawn over the graph.
+  - `minScale?` *(real)* — minimum scale value.
+  - `maxScale?` *(real)* — maximum scale value.
+  - `graphWidth?` *(real)* — graph width in pixels.
+  - `graphHeight?` *(real)* — graph height in pixels.
+  - `valueCount?` *(int32)* — number of values to plot; -1 to use the array length.
+- `PlotHistogram(strId : string, values : array, offset? : int32 = 0, overlayText? : string, minScale? : real = 0, maxScale? : real = 0, graphWidth? : real = 0, graphHeight? : real = 0, valueCount? : int32 = -1)` - Plot a histogram.
+  - `strId` *(string)* — plot ID.
+  - `values` *(array)* — values array.
+  - `offset?` *(int32)* — index offset into the values array.
+  - `overlayText?` *(string)* — text drawn over the graph.
+  - `minScale?` *(real)* — minimum scale value.
+  - `maxScale?` *(real)* — maximum scale value.
+  - `graphWidth?` *(real)* — graph width in pixels.
+  - `graphHeight?` *(real)* — graph height in pixels.
+  - `valueCount?` *(int32)* — number of values to plot; -1 to use the array length.
+
+### Payload (Drag & Drop) Functions
+
+- `BeginDragDropSource(flags? : uint32 = 0) : bool` - Begin a drag-drop source.
+  - `flags?` *(uint32)* — `ImGuiDragDropFlags` controlling source behavior.
+- `EndDragDropSource()` - End a drag-drop source.
+- `BeginDragDropTarget() : bool` - Begin a drag-drop target.
+- `EndDragDropTarget()` - End a drag-drop target.
+- `SetDragDropPayload(type : string, data : any, cond? : uint32 = 0) : bool` - Set the drag-drop payload.
+  - `type` *(string)* — payload type identifier string.
+  - `data` *(any)* — payload data.
+  - `cond?` *(uint32)* — `ImGuiCond` controlling when the payload is set.
+- `AcceptDragDropPayload(type : string, flags : uint32) : any` - Accept a drag-drop payload of a given type.
+  - `type` *(string)* — payload type identifier string.
+  - `flags` *(uint32)* — `ImGuiDragDropFlags` controlling accept behavior.
+- `GetDragDropPayload() : any` - Get the current drag-drop payload.
+- `GetPayloadType() : any` - Get the current payload type.
+
+### Menu Functions
+
+- `BeginMenuBar() : bool` - Begin the menu bar of the current window.
+- `EndMenuBar()` - End the menu bar.
+- `BeginMainMenuBar() : bool` - Begin the full-screen main menu bar.
+- `EndMainMenuBar()` - End the main menu bar.
+- `BeginMenu(label : string, enabled? : bool = true) : bool` - Begin a menu.
+  - `label` *(string)* — menu label.
+  - `enabled?` *(bool)* — whether the menu is enabled.
+- `EndMenu()` - End a menu.
+- `MenuItem(label : string, shortcut? : string, state? : object, enabled? : bool = true) : bool` - Create a menu item.
+  - `label` *(string)* — menu label.
+  - `shortcut?` *(string)* — shortcut text displayed to the right.
+  - `state?` *(object)* — state object: `selected` true if selected, `visible` true if the item is visible.
+  - `enabled?` *(bool)* — whether the item is enabled.
+
+### Listbox Functions
+
+- `BeginListBox(label : string, width? : real = 0, height? : real = 0) : bool` - Begin a list box.
+  - `label` *(string)* — list box label.
+  - `width?` *(real)* — width in pixels.
+  - `height?` *(real)* — height in pixels.
+- `EndListBox()` - End a list box.
+- `ListBox(label : string, currentItem : int32, items : array, heightInItems? : int32 = -1) : int32` - Simple list box from an array; returns the selected index.
+  - `label` *(string)* — list box label.
+  - `currentItem` *(int32)* — currently selected item index.
+  - `items` *(array)* — items array.
+  - `heightInItems?` *(int32)* — visible height measured in items.
+
+### Layout Functions
+
+- `Spacing()` - Add vertical spacing.
+- `Dummy(width : real, height : real)` - Add a dummy item of the given size.
+  - `width` *(real)* — dummy item width in pixels.
+  - `height` *(real)* — dummy item height in pixels.
+- `NewLine()` - Move to a new line.
+- `AlignTextToFramePadding()` - Vertically align text to the current frame padding.
+- `Separator()` - Draw a horizontal separator.
+- `ImGUI__SeparatorText(label : string)` - Draw a separator with a centred label. *(Exposed under its native name.)*
+  - `label` *(string)* — separator label text.
+- `Indent(indentW : real)` - Indent subsequent content.
+  - `indentW` *(real)* — indent width in pixels.
+- `Unindent(indentW : real)` - Unindent subsequent content.
+  - `indentW` *(real)* — unindent width in pixels.
+- `SameLine(offsetFromStartX? : real = 0, spacing? : real = -1)` - Keep the next item on the same line.
+  - `offsetFromStartX?` *(real)* — horizontal offset from the line start.
+  - `spacing?` *(real)* — spacing before the next item; -1 for default.
+- `BeginGroup()` - Begin a layout group.
+- `EndGroup()` - End a layout group.
+- `GetCursorPosX() : real` - Get the cursor X position.
+- `GetCursorPosY() : real` - Get the cursor Y position.
+- `GetCursorStartPosX() : real` - Get the cursor start X position.
+- `GetCursorStartPosY() : real` - Get the cursor start Y position.
+- `GetCursorScreenPosX() : real` - Get the cursor X position in screen space.
+- `GetCursorScreenPosY() : real` - Get the cursor Y position in screen space.
+- `SetCursorScreenPos(x : real, y : real)` - Set the cursor position in screen space.
+  - `x` *(real)* — X position.
+  - `y` *(real)* — Y position.
+- `SetCursorPos(x : real, y : real)` - Set the cursor position.
+  - `x` *(real)* — X position.
+  - `y` *(real)* — Y position.
+- `SetCursorPosX(x : real)` - Set the cursor X position.
+  - `x` *(real)* — X position.
+- `SetCursorPosY(y : real)` - Set the cursor Y position.
+  - `y` *(real)* — Y position.
+- `GetTextLineHeight() : real` - Get the text line height.
+- `GetTextLineHeightWithSpacing() : real` - Get the text line height including spacing.
+- `GetFrameHeight() : real` - Get the frame height.
+- `GetFrameHeightWithSpacing() : real` - Get the frame height including spacing.
+- `GetContentRegionAvailX() : real` - Get the available content region width.
+- `GetContentRegionAvailY() : real` - Get the available content region height.
+- `GetContentRegionMaxX() : real` - Get the maximum content region X.
+- `GetContentRegionMaxY() : real` - Get the maximum content region Y.
+- `GetWindowContentRegionMinX() : real` - Get the window content region minimum X.
+- `GetWindowContentRegionMinY() : real` - Get the window content region minimum Y.
+- `GetWindowContentRegionMaxX() : real` - Get the window content region maximum X.
+- `GetWindowContentRegionMaxY() : real` - Get the window content region maximum Y.
+- `PushItemWidth(itemWidth : real)` - Push the width of subsequent items.
+  - `itemWidth` *(real)* — item width in pixels.
+- `PopItemWidth()` - Pop the item width.
+- `SetNextItemWidth(width : real)` - Set the width of the next item.
+  - `width` *(real)* — next item width in pixels.
+- `CalcItemWidth() : real` - Calculate the current item width.
+- `PushTextWrapPos(itemWidth? : real = 0)` - Push a text-wrap position.
+  - `itemWidth?` *(real)* — wrap position in pixels; 0 wraps to the window edge.
+- `PopTextWrapPos()` - Pop the text-wrap position.
+- `PushClipRect(clipMinX : real, clipMinY : real, clipMaxX : real, clipMaxY : real, intersectWithCurrentClipRect : bool)` - Push a clip rectangle.
+  - `clipMinX` *(real)* — clip minimum X.
+  - `clipMinY` *(real)* — clip minimum Y.
+  - `clipMaxX` *(real)* — clip maximum X.
+  - `clipMaxY` *(real)* — clip maximum Y.
+  - `intersectWithCurrentClipRect` *(bool)* — intersect with the current clip rectangle.
+- `PopClipRect()` - Pop the clip rectangle.
+
+### Input Widget Functions
+
+- `InputText(label : string, val : string, flags? : uint32 = 0) : string` - Single-line text input.
+  - `label` *(string)* — input field label; supports `##` suffix for a hidden ID.
+  - `val` *(string)* — input text string; modified when the user types.
+  - `flags?` *(uint32)* — `ImGuiInputTextFlags` controlling behavior (ReadOnly, NoHorizontalScroll, etc.).
+- `InputTextMultiline(label : string, val : string, width? : real = 0, height? : real = 0, flags? : uint32 = 0) : string` - Multi-line text input.
+  - `label` *(string)* — input field label; supports `##` suffix for a hidden ID.
+  - `val` *(string)* — input text string; modified when the user types.
+  - `width?` *(real)* — text area width in pixels; 0 = full available width.
+  - `height?` *(real)* — text area height in pixels; 0 = default row height.
+  - `flags?` *(uint32)* — `ImGuiInputTextFlags` controlling behavior.
+- `InputTextWithHint(label : string, hint : string, val : string, flags? : uint32 = 0) : string` - Text input with a placeholder hint.
+  - `label` *(string)* — input field label; supports `##` suffix for a hidden ID.
+  - `hint` *(string)* — placeholder text displayed when the field is empty.
+  - `val` *(string)* — input text string; modified when the user types.
+  - `flags?` *(uint32)* — `ImGuiInputTextFlags` controlling behavior.
+- `InputFloat(label : string, val : real, step? : real = 0.1, stepFast? : real = 0.25, format? : string, flags? : uint32 = 0) : real` - Float input with steppers.
+  - `label` *(string)* — input field label; supports `##` suffix for a hidden ID.
+  - `val` *(real)* — float value; modified when the user edits the text.
+  - `step?` *(real)* — step increment per arrow-key press.
+  - `stepFast?` *(real)* — faster step when Ctrl is held down.
+  - `format?` *(string)* — printf-style format (e.g., `%.2f`).
+  - `flags?` *(uint32)* — `ImGuiInputTextFlags` controlling behavior.
+- `InputFloat2(label : string, val : array, format? : string, flags? : uint32 = 0)` - 2-component float input.
+  - `label` *(string)* — input field label; supports `##` suffix for a hidden ID.
+  - `val` *(array)* — 2-element float array; modified when the user edits.
+  - `format?` *(string)* — printf-style format (e.g., `%.2f`).
+  - `flags?` *(uint32)* — `ImGuiInputTextFlags` controlling behavior.
+- `InputFloat3(label : string, val : array, format? : string, flags? : uint32 = 0)` - 3-component float input.
+  - `label` *(string)* — input field label; supports `##` suffix for a hidden ID.
+  - `val` *(array)* — 3-element float array; modified when the user edits.
+  - `format?` *(string)* — printf-style format (e.g., `%.2f`).
+  - `flags?` *(uint32)* — `ImGuiInputTextFlags` controlling behavior.
+- `InputFloat4(label : string, val : array, format? : string, flags? : uint32 = 0)` - 4-component float input.
+  - `label` *(string)* — input field label; supports `##` suffix for a hidden ID.
+  - `val` *(array)* — 4-element float array; modified when the user edits.
+  - `format?` *(string)* — printf-style format (e.g., `%.2f`).
+  - `flags?` *(uint32)* — `ImGuiInputTextFlags` controlling behavior.
+- `InputFloatN(label : string, val : array, step? : real = 0.1, stepFast? : real = 0.25, format? : string, flags? : uint32 = 0)` - N-component float input.
+  - `label` *(string)* — input field label; supports `##` suffix for a hidden ID.
+  - `val` *(array)* — float array; modified when the user edits.
+  - `step?` *(real)* — step increment per arrow-key press.
+  - `stepFast?` *(real)* — faster step when Ctrl is held down.
+  - `format?` *(string)* — printf-style format (e.g., `%.2f`).
+  - `flags?` *(uint32)* — `ImGuiInputTextFlags` controlling behavior.
+- `InputInt(label : string, val : int32, step? : int32 = 1, stepFast? : int32 = 5, flags? : uint32 = 0) : int32` - Integer input with steppers.
+  - `label` *(string)* — input field label; supports `##` suffix for a hidden ID.
+  - `val` *(int32)* — integer value; modified when the user edits the text.
+  - `step?` *(int32)* — step increment per arrow-key press.
+  - `stepFast?` *(int32)* — faster step when Ctrl is held down.
+  - `flags?` *(uint32)* — `ImGuiInputTextFlags` controlling behavior.
+- `InputInt2(label : string, val : array, flags? : uint32 = 0)` - 2-component integer input.
+  - `label` *(string)* — input field label; supports `##` suffix for a hidden ID.
+  - `val` *(array)* — 2-element integer array; modified when the user edits.
+  - `flags?` *(uint32)* — `ImGuiInputTextFlags` controlling behavior.
+- `InputInt3(label : string, val : array, flags? : uint32 = 0)` - 3-component integer input.
+  - `label` *(string)* — input field label; supports `##` suffix for a hidden ID.
+  - `val` *(array)* — 3-element integer array; modified when the user edits.
+  - `flags?` *(uint32)* — `ImGuiInputTextFlags` controlling behavior.
+- `InputInt4(label : string, val : array, flags? : uint32 = 0)` - 4-component integer input.
+  - `label` *(string)* — input field label; supports `##` suffix for a hidden ID.
+  - `val` *(array)* — 4-element integer array; modified when the user edits.
+  - `flags?` *(uint32)* — `ImGuiInputTextFlags` controlling behavior.
+- `InputIntN(label : string, val : array, step? : int32 = 1, stepFast? : int32 = 5, flags? : uint32 = 0)` - N-component integer input.
+  - `label` *(string)* — input field label; supports `##` suffix for a hidden ID.
+  - `val` *(array)* — integer array; modified when the user edits.
+  - `step?` *(int32)* — step increment per arrow-key press.
+  - `stepFast?` *(int32)* — faster step when Ctrl is held down.
+  - `flags?` *(uint32)* — `ImGuiInputTextFlags` controlling behavior.
+- `InputDouble(label : string, val : real, step? : real = 0.1, stepFast? : real = 0.25, format? : string, flags? : uint32 = 0) : real` - Double input with steppers.
+  - `label` *(string)* — input field label; supports `##` suffix for a hidden ID.
+  - `val` *(real)* — double value; modified when the user edits the text.
+  - `step?` *(real)* — step increment per arrow-key press.
+  - `stepFast?` *(real)* — faster step when Ctrl is held down.
+  - `format?` *(string)* — printf-style format (e.g., `%.4f`).
+  - `flags?` *(uint32)* — `ImGuiInputTextFlags` controlling behavior.
+
+### Input Functions
+
+- `IsKeyDown(key : int32, idOwner? : uint32) : bool` - Returns true if a key is held down.
+  - `key` *(int32)* — `ImGuiKey` code to check.
+  - `idOwner?` *(uint32)* — optional owner ID for a key-ownership check.
+- `IsKeyPressed(key : int32, repeat? : bool) : bool` - Returns true if a key was pressed.
+  - `key` *(int32)* — `ImGuiKey` code to check.
+  - `repeat?` *(bool)* — true to detect key repeat; false for first press only.
+- `IsKeyReleased(key : int32, idOwner? : uint32) : bool` - Returns true if a key was released.
+  - `key` *(int32)* — `ImGuiKey` code to check.
+  - `idOwner?` *(uint32)* — optional owner ID for a key-ownership check.
+- `IsKeyChordPressed(key : int32, flags? : uint32, idOwner? : uint32) : bool` - Returns true if a key chord was pressed.
+  - `key` *(int32)* — `ImGuiKey` code or `ImGuiKeyChord` combination.
+  - `flags?` *(uint32)* — `ImGuiInputFlags` controlling behavior.
+  - `idOwner?` *(uint32)* — optional owner ID for a key-ownership check.
+- `GetKeyPressedAmount(key : int32, repeatDelay : real, rate : real) : real` - Get how many times a key repeated.
+  - `key` *(int32)* — key code.
+  - `repeatDelay` *(real)* — delay before repeats begin.
+  - `rate` *(real)* — repeat rate.
+- `GetKeyName(key : int32) : string` - Get the name of a key.
+  - `key` *(int32)* — key code.
+- `GetKeyChordName(key : int32) : string` - Get the name of a key chord.
+  - `key` *(int32)* — key chord code.
+- `IsMouseDown(button : int32, id? : uint32) : bool` - Returns true if a mouse button is held down.
+  - `button` *(int32)* — mouse button index.
+  - `id?` *(uint32)* — optional owner ID.
+- `IsMouseClicked(button : int32, repeatOrFlags : any, id? : uint32) : bool` - Returns true if a mouse button was clicked.
+  - `button` *(int32)* — mouse button index.
+  - `repeatOrFlags` *(any)* — repeat flag or `ImGuiInputFlags`.
+  - `id?` *(uint32)* — optional owner ID.
+- `IsMouseReleased(button : int32, id? : uint32) : bool` - Returns true if a mouse button was released.
+  - `button` *(int32)* — mouse button index.
+  - `id?` *(uint32)* — optional owner ID.
+- `IsMouseDoubleClicked(button : int32, id? : uint32) : bool` - Returns true if a mouse button was double-clicked.
+  - `button` *(int32)* — mouse button index.
+  - `id?` *(uint32)* — optional owner ID.
+- `GetMouseClickedCount(button : int32) : int32` - Get the click count for a mouse button.
+  - `button` *(int32)* — mouse button index.
+- `IsMouseHoveringRect(minX : real, minY : real, maxX : real, maxY : real, clip : bool) : bool` - Returns true if the mouse hovers a rect.
+  - `minX` *(real)* — rect minimum X.
+  - `minY` *(real)* — rect minimum Y.
+  - `maxX` *(real)* — rect maximum X.
+  - `maxY` *(real)* — rect maximum Y.
+  - `clip` *(bool)* — clip the rect against the current clip rectangle.
+- `IsMousePosValid(x : real, y : real) : bool` - Returns true if the given mouse position is valid.
+  - `x` *(real)* — mouse X position.
+  - `y` *(real)* — mouse Y position.
+- `IsAnyMouseDown() : bool` - Returns true if any mouse button is down.
+- `IsMouseDragging(button : int32, lockThreshold : real) : bool` - Returns true if a mouse button is dragging.
+  - `button` *(int32)* — mouse button index.
+  - `lockThreshold` *(real)* — distance threshold before a drag is registered.
+- `GetMousePosX() : real` - Get the mouse X position.
+- `GetMousePosY() : real` - Get the mouse Y position.
+- `GetMousePosOnOpeningCurrentPopupX() : real` - Get the mouse X captured when the current popup opened.
+- `GetMousePosOnOpeningCurrentPopupY() : real` - Get the mouse Y captured when the current popup opened.
+- `GetMouseDragDeltaX(button : int32, lockThreshold : real) : real` - Get the horizontal drag delta.
+  - `button` *(int32)* — mouse button index.
+  - `lockThreshold` *(real)* — distance threshold before a drag is registered.
+- `GetMouseDragDeltaY(button : int32, lockThreshold : real) : real` - Get the vertical drag delta.
+  - `button` *(int32)* — mouse button index.
+  - `lockThreshold` *(real)* — distance threshold before a drag is registered.
+- `ResetMouseDragDelta(button : int32)` - Reset the drag delta for a button.
+  - `button` *(int32)* — mouse button index.
+- `Shortcut(keyChord : int32, flags : uint32, idOwner? : uint32) : bool` - Register a keyboard shortcut.
+  - `keyChord` *(int32)* — key chord.
+  - `flags` *(uint32)* — `ImGuiInputFlags` controlling behavior.
+  - `idOwner?` *(uint32)* — optional owner ID.
+- `SetNextItemShortcut(keyChord : int32, flags : uint32)` - Assign a shortcut to the next item.
+  - `keyChord` *(int32)* — key chord.
+  - `flags` *(uint32)* — `ImGuiInputFlags` controlling behavior.
+- `SetItemKeyOwner(key : int32, flags? : uint32)` - Set key ownership for the last item.
+  - `key` *(int32)* — key code.
+  - `flags?` *(uint32)* — `ImGuiInputFlags` controlling behavior.
+
+### Font Functions
+
+- `GetFont() : pointer` - Get the current font.
+- `PushFont(font : pointer)` - Push a font for subsequent text.
+  - `font` *(pointer)* — font pointer to use for subsequent text rendering.
+- `PopFont()` - Pop the current font.
+- `AddFontFromFileTTF(file : string, sizePixels : real, pConfig? : object, glyphRanges? : array, countRanges? : int32 = -1) : pointer` - Load a font from a TTF file.
+  - `file` *(string)* — path to the TTF file.
+  - `sizePixels` *(real)* — desired font size in pixels.
+  - `pConfig?` *(object)* — optional ImFontConfig structure.
+  - `glyphRanges?` *(array)* — optional glyph ranges to load.
+  - `countRanges?` *(int32)* — number of glyph ranges (-1 for all).
+- `AddFontDefault() : pointer` - Add the default font.
+- `AddFontFromBufferTTF(buffer : int32, sizePixels : real, pConfig? : object, glyphRanges? : array, countRanges? : int32 = -1) : pointer` - Load a font from a TTF memory buffer.
+  - `buffer` *(int32)* — memory buffer containing TTF data.
+  - `sizePixels` *(real)* — desired font size in pixels.
+  - `pConfig?` *(object)* — optional ImFontConfig structure.
+  - `glyphRanges?` *(array)* — optional glyph ranges to load.
+  - `countRanges?` *(int32)* — number of glyph ranges (-1 for all).
+- `GetFontSize() : real` - Get the current font size.
+
+### Drawlist Functions
+
+- `GetBackgroundDrawList(pViewport : pointer) : pointer` - Get the background draw list.
+  - `pViewport` *(pointer)* — viewport pointer; null for the main viewport.
+- `GetForegroundDrawList(pViewport : pointer) : pointer` - Get the foreground draw list.
+  - `pViewport` *(pointer)* — viewport pointer; null for the main viewport.
+- `GetWindowDrawList() : pointer` - Get the current window's draw list.
+- `DrawListAddLine(pDrawList : pointer, x1 : real, y1 : real, x2 : real, y2 : real, col : uint32, thickness? : real = 1)` - Add a line.
+  - `pDrawList` *(pointer)* — draw list pointer.
+  - `x1` *(real)* — line start X coordinate.
+  - `y1` *(real)* — line start Y coordinate.
+  - `x2` *(real)* — line end X coordinate.
+  - `y2` *(real)* — line end Y coordinate.
+  - `col` *(uint32)* — line color (RGB).
+  - `thickness?` *(real)* — line thickness in pixels.
+- `DrawListAddRect(pDrawList : pointer, x1 : real, y1 : real, x2 : real, y2 : real, col : uint32, rounding? : real = 0, flags? : uint32 = 0, thickness? : real = 1)` - Add a rectangle outline.
+  - `pDrawList` *(pointer)* — draw list pointer.
+  - `x1` *(real)* — top-left X coordinate.
+  - `y1` *(real)* — top-left Y coordinate.
+  - `x2` *(real)* — bottom-right X coordinate.
+  - `y2` *(real)* — bottom-right Y coordinate.
+  - `col` *(uint32)* — outline color (RGB).
+  - `rounding?` *(real)* — corner radius (0 for square).
+  - `flags?` *(uint32)* — `ImDrawFlags` controlling rendering.
+  - `thickness?` *(real)* — outline thickness in pixels.
+- `DrawListAddRectFilled(pDrawList : pointer, x1 : real, y1 : real, x2 : real, y2 : real, col : uint32, rounding? : real = 0, flags? : uint32 = 0)` - Add a filled rectangle.
+  - `pDrawList` *(pointer)* — draw list pointer.
+  - `x1` *(real)* — top-left X coordinate.
+  - `y1` *(real)* — top-left Y coordinate.
+  - `x2` *(real)* — bottom-right X coordinate.
+  - `y2` *(real)* — bottom-right Y coordinate.
+  - `col` *(uint32)* — fill color (RGB).
+  - `rounding?` *(real)* — corner radius (0 for square).
+  - `flags?` *(uint32)* — `ImDrawFlags` controlling rendering.
+- `DrawListAddRectFilledMultiColor(pDrawList : pointer, x1 : real, y1 : real, x2 : real, y2 : real, col1 : uint32, col2 : uint32, col3 : uint32, col4 : uint32)` - Add a filled rectangle with per-corner colours (American spelling).
+  - `pDrawList` *(pointer)* — draw list pointer.
+  - `x1` *(real)* — top-left X coordinate.
+  - `y1` *(real)* — top-left Y coordinate.
+  - `x2` *(real)* — bottom-right X coordinate.
+  - `y2` *(real)* — bottom-right Y coordinate.
+  - `col1` *(uint32)* — color at the top-left corner (RGB).
+  - `col2` *(uint32)* — color at the top-right corner (RGB).
+  - `col3` *(uint32)* — color at the bottom-right corner (RGB).
+  - `col4` *(uint32)* — color at the bottom-left corner (RGB).
+- `DrawListAddRectFilledMultiColour(pDrawList : pointer, x1 : real, y1 : real, x2 : real, y2 : real, col1 : uint32, col2 : uint32, col3 : uint32, col4 : uint32)` - Add a filled rectangle with per-corner colours (British spelling).
+  - `pDrawList` *(pointer)* — draw list pointer.
+  - `x1` *(real)* — top-left X coordinate.
+  - `y1` *(real)* — top-left Y coordinate.
+  - `x2` *(real)* — bottom-right X coordinate.
+  - `y2` *(real)* — bottom-right Y coordinate.
+  - `col1` *(uint32)* — colour at the top-left corner (RGB).
+  - `col2` *(uint32)* — colour at the top-right corner (RGB).
+  - `col3` *(uint32)* — colour at the bottom-right corner (RGB).
+  - `col4` *(uint32)* — colour at the bottom-left corner (RGB).
+- `DrawListAddQuad(pDrawList : pointer, x1 : real, y1 : real, x2 : real, y2 : real, x3 : real, y3 : real, x4 : real, y4 : real, col : uint32)` - Add a quad outline.
+  - `pDrawList` *(pointer)* — draw list pointer.
+  - `x1`, `y1` *(real)* — point 1 coordinates.
+  - `x2`, `y2` *(real)* — point 2 coordinates.
+  - `x3`, `y3` *(real)* — point 3 coordinates.
+  - `x4`, `y4` *(real)* — point 4 coordinates.
+  - `col` *(uint32)* — outline color (RGB).
+- `DrawListAddQuadFilled(pDrawList : pointer, x1 : real, y1 : real, x2 : real, y2 : real, x3 : real, y3 : real, x4 : real, y4 : real, col : uint32)` - Add a filled quad.
+  - `pDrawList` *(pointer)* — draw list pointer.
+  - `x1`, `y1` *(real)* — point 1 coordinates.
+  - `x2`, `y2` *(real)* — point 2 coordinates.
+  - `x3`, `y3` *(real)* — point 3 coordinates.
+  - `x4`, `y4` *(real)* — point 4 coordinates.
+  - `col` *(uint32)* — fill color (RGB).
+- `DrawListAddTriangle(pDrawList : pointer, x1 : real, y1 : real, x2 : real, y2 : real, x3 : real, y3 : real, col : uint32, thickness? : real = 1)` - Add a triangle outline.
+  - `pDrawList` *(pointer)* — draw list pointer.
+  - `x1`, `y1` *(real)* — vertex 1 coordinates.
+  - `x2`, `y2` *(real)* — vertex 2 coordinates.
+  - `x3`, `y3` *(real)* — vertex 3 coordinates.
+  - `col` *(uint32)* — colour (RGB).
+  - `thickness?` *(real)* — outline thickness in pixels.
+- `DrawListAddTriangleFilled(pDrawList : pointer, x1 : real, y1 : real, x2 : real, y2 : real, x3 : real, y3 : real, col : uint32)` - Add a filled triangle.
+  - `pDrawList` *(pointer)* — draw list pointer.
+  - `x1`, `y1` *(real)* — vertex 1 coordinates.
+  - `x2`, `y2` *(real)* — vertex 2 coordinates.
+  - `x3`, `y3` *(real)* — vertex 3 coordinates.
+  - `col` *(uint32)* — colour (RGB).
+- `DrawListAddCircle(pDrawList : pointer, x : real, y : real, radius : real, col : uint32, numSegments? : int32 = 0, thickness? : real = 1)` - Add a circle outline.
+  - `pDrawList` *(pointer)* — draw list pointer.
+  - `x` *(real)* — center X coordinate.
+  - `y` *(real)* — center Y coordinate.
+  - `radius` *(real)* — circle radius.
+  - `col` *(uint32)* — colour (RGB).
+  - `numSegments?` *(int32)* — number of segments; 0 for auto.
+  - `thickness?` *(real)* — outline thickness in pixels.
+- `DrawListAddCircleFilled(pDrawList : pointer, x : real, y : real, radius : real, col : uint32, numSegments? : int32 = 0)` - Add a filled circle.
+  - `pDrawList` *(pointer)* — draw list pointer.
+  - `x` *(real)* — center X coordinate.
+  - `y` *(real)* — center Y coordinate.
+  - `radius` *(real)* — circle radius.
+  - `col` *(uint32)* — colour (RGB).
+  - `numSegments?` *(int32)* — number of segments; 0 for auto.
+- `DrawListAddNgon(pDrawList : pointer, x : real, y : real, radius : real, col : uint32, numSegments? : int32 = 0, thickness? : real = 1)` - Add an N-sided polygon outline.
+  - `pDrawList` *(pointer)* — draw list pointer.
+  - `x` *(real)* — center X coordinate.
+  - `y` *(real)* — center Y coordinate.
+  - `radius` *(real)* — polygon radius.
+  - `col` *(uint32)* — colour (RGB).
+  - `numSegments?` *(int32)* — number of sides/segments.
+  - `thickness?` *(real)* — outline thickness in pixels.
+- `DrawListAddNgonFilled(pDrawList : pointer, x : real, y : real, radius : real, col : uint32, numSegments? : int32 = 0)` - Add a filled N-sided polygon.
+  - `pDrawList` *(pointer)* — draw list pointer.
+  - `x` *(real)* — center X coordinate.
+  - `y` *(real)* — center Y coordinate.
+  - `radius` *(real)* — polygon radius.
+  - `col` *(uint32)* — colour (RGB).
+  - `numSegments?` *(int32)* — number of sides/segments.
+- `DrawListAddText(pDrawList : pointer, x : real, y : real, text : string, col : uint32)` - Add text.
+  - `pDrawList` *(pointer)* — draw list pointer.
+  - `x` *(real)* — text X coordinate.
+  - `y` *(real)* — text Y coordinate.
+  - `text` *(string)* — text string.
+  - `col` *(uint32)* — colour (RGB).
+- `DrawListAddTextFont(pDrawList : pointer, x : real, y : real, text : string, col : uint32, pFont : pointer, fontSize : real, wrapWidth? : real = 0)` - Add text with a specific font/size.
+  - `pDrawList` *(pointer)* — draw list pointer.
+  - `x` *(real)* — text X coordinate.
+  - `y` *(real)* — text Y coordinate.
+  - `text` *(string)* — text string.
+  - `col` *(uint32)* — colour (RGB).
+  - `pFont` *(pointer)* — font pointer.
+  - `fontSize` *(real)* — font size in pixels.
+  - `wrapWidth?` *(real)* — wrap width in pixels; 0 for no wrap.
+- `DrawListAddPolyline(pDrawList : pointer, points : array, col : uint32, flags? : uint32 = 0, thickness? : real = 1, numPoints? : int32 = -1)` - Add a polyline.
+  - `pDrawList` *(pointer)* — draw list pointer.
+  - `points` *(array)* — array of points.
+  - `col` *(uint32)* — colour (RGB).
+  - `flags?` *(uint32)* — `ImDrawFlags` controlling rendering.
+  - `thickness?` *(real)* — line thickness in pixels.
+  - `numPoints?` *(int32)* — number of points; -1 to use the array length.
+- `DrawListAddConvexPolyFilled(pDrawList : pointer, points : array, col : uint32, numPoints? : int32 = -1)` - Add a filled convex polygon.
+  - `pDrawList` *(pointer)* — draw list pointer.
+  - `points` *(array)* — array of points.
+  - `col` *(uint32)* — colour (RGB).
+  - `numPoints?` *(int32)* — number of points; -1 to use the array length.
+- `DrawListAddBezierCubic(pDrawList : pointer, x1 : real, y1 : real, x2 : real, y2 : real, x3 : real, y3 : real, x4 : real, y4 : real, col : uint32, thickness? : real = 1, numSegments? : int32 = 0)` - Add a cubic Bézier curve.
+  - `pDrawList` *(pointer)* — draw list pointer.
+  - `x1`, `y1` *(real)* — start point coordinates.
+  - `x2`, `y2` *(real)* — first control point coordinates.
+  - `x3`, `y3` *(real)* — second control point coordinates.
+  - `x4`, `y4` *(real)* — end point coordinates.
+  - `col` *(uint32)* — colour (RGB).
+  - `thickness?` *(real)* — line thickness in pixels.
+  - `numSegments?` *(int32)* — number of segments; 0 for auto.
+- `DrawListAddBezierQuadratic(pDrawList : pointer, x1 : real, y1 : real, x2 : real, y2 : real, x3 : real, y3 : real, col : uint32, thickness? : real = 1, numSegments? : int32 = 0)` - Add a quadratic Bézier curve.
+  - `pDrawList` *(pointer)* — draw list pointer.
+  - `x1`, `y1` *(real)* — start point coordinates.
+  - `x2`, `y2` *(real)* — control point coordinates.
+  - `x3`, `y3` *(real)* — end point coordinates.
+  - `col` *(uint32)* — colour (RGB).
+  - `thickness?` *(real)* — line thickness in pixels.
+  - `numSegments?` *(int32)* — number of segments; 0 for auto.
+- `DrawListPathFillConvex(pDrawList : pointer, col : uint32)` - Fill the current path as a convex shape.
+  - `pDrawList` *(pointer)* — draw list pointer.
+  - `col` *(uint32)* — fill colour (RGB).
+- `DrawListPathStroke(pDrawList : pointer, col : uint32, flags? : uint32 = 0, thickness? : real = 1)` - Stroke the current path.
+  - `pDrawList` *(pointer)* — draw list pointer.
+  - `col` *(uint32)* — stroke colour (RGB).
+  - `flags?` *(uint32)* — `ImDrawFlags` controlling rendering.
+  - `thickness?` *(real)* — line thickness in pixels.
+- `DrawListPathClear(pDrawList : pointer)` - Clear the current path.
+  - `pDrawList` *(pointer)* — draw list pointer.
+- `DrawListPathLineTo(pDrawList : pointer, x : real, y : real)` - Add a point to the current path.
+  - `pDrawList` *(pointer)* — draw list pointer.
+  - `x` *(real)* — point X coordinate.
+  - `y` *(real)* — point Y coordinate.
+- `DrawListPathLineToMergeDuplicate(pDrawList : pointer, x : real, y : real)` - Add a point to the path, merging duplicates.
+  - `pDrawList` *(pointer)* — draw list pointer.
+  - `x` *(real)* — point X coordinate.
+  - `y` *(real)* — point Y coordinate.
+- `DrawListPathArcTo(pDrawList : pointer, x : real, y : real, radius : real, aMin : real, aMax : real, numSegments? : int32 = 0)` - Add an arc to the current path.
+  - `pDrawList` *(pointer)* — draw list pointer.
+  - `x` *(real)* — center X coordinate.
+  - `y` *(real)* — center Y coordinate.
+  - `radius` *(real)* — arc radius.
+  - `aMin` *(real)* — minimum angle.
+  - `aMax` *(real)* — maximum angle.
+  - `numSegments?` *(int32)* — number of segments; 0 for auto.
+- `DrawListPathArcToFast(pDrawList : pointer, x : real, y : real, radius : real, aMin : real, aMax : real)` - Add a fast (12-step) arc to the current path.
+  - `pDrawList` *(pointer)* — draw list pointer.
+  - `x` *(real)* — center X coordinate.
+  - `y` *(real)* — center Y coordinate.
+  - `radius` *(real)* — arc radius.
+  - `aMin` *(real)* — minimum angle.
+  - `aMax` *(real)* — maximum angle.
+- `ImGUI__DrawListPathBezierCubicCurveTo(pDrawList : pointer, x2 : real, y2 : real, x3 : real, y3 : real, x4 : real, y4 : real, numSegments? : int32 = 0)` - Add a cubic Bézier curve to the path. *(Exposed under its native name.)*
+  - `pDrawList` *(pointer)* — draw list pointer.
+  - `x2`, `y2` *(real)* — first control point coordinates.
+  - `x3`, `y3` *(real)* — second control point coordinates.
+  - `x4`, `y4` *(real)* — end point coordinates.
+  - `numSegments?` *(int32)* — number of segments; 0 for auto.
+- `DrawListPathBezierQuadraticCurveTo(pDrawList : pointer, x2 : real, y2 : real, x3 : real, y3 : real, numSegments? : int32 = 0)` - Add a quadratic Bézier curve to the path.
+  - `pDrawList` *(pointer)* — draw list pointer.
+  - `x2`, `y2` *(real)* — control point coordinates.
+  - `x3`, `y3` *(real)* — end point coordinates.
+  - `numSegments?` *(int32)* — number of segments; 0 for auto.
+- `DrawListPathRect(pDrawList : pointer, x1 : real, y1 : real, x2 : real, y2 : real, rounding? : real = 0, flags? : uint32 = 0)` - Add a rectangle to the current path.
+  - `pDrawList` *(pointer)* — draw list pointer.
+  - `x1`, `y1` *(real)* — top-left coordinates.
+  - `x2`, `y2` *(real)* — bottom-right coordinates.
+  - `rounding?` *(real)* — corner radius (0 for square).
+  - `flags?` *(uint32)* — `ImDrawFlags` controlling rendering.
+- `DrawListAddImage(pDrawList : pointer, sprite : sprite_asset, index : int32, x1 : real, y1 : real, x2 : real, y2 : real, col : uint32, uvs? : array)` - Add a sprite image.
+  - `pDrawList` *(pointer)* — draw list pointer.
+  - `sprite` *(sprite_asset)* — sprite asset.
+  - `index` *(int32)* — sprite frame index.
+  - `x1`, `y1` *(real)* — top-left coordinates.
+  - `x2`, `y2` *(real)* — bottom-right coordinates.
+  - `col` *(uint32)* — tint colour (RGB).
+  - `uvs?` *(array)* — custom UV coordinates.
+- `DrawListAddImageRounded(pDrawList : pointer, sprite : sprite_asset, index : int32, x1 : real, y1 : real, x2 : real, y2 : real, col : uint32, rounding? : real = 0, flags? : uint32 = 0, uvs? : array)` - Add a rounded sprite image.
+  - `pDrawList` *(pointer)* — draw list pointer.
+  - `sprite` *(sprite_asset)* — sprite asset.
+  - `index` *(int32)* — sprite frame index.
+  - `x1`, `y1` *(real)* — top-left coordinates.
+  - `x2`, `y2` *(real)* — bottom-right coordinates.
+  - `col` *(uint32)* — tint colour (RGB).
+  - `rounding?` *(real)* — corner radius (0 for square).
+  - `flags?` *(uint32)* — `ImDrawFlags` controlling rendering.
+  - `uvs?` *(array)* — custom UV coordinates.
+- `DrawListPushClipRect(pDrawList : pointer, minX : real, minY : real, maxX : real, maxY : real, intersectWithCurrentClipRect? : bool = false)` - Push a clip rectangle onto the draw list.
+  - `pDrawList` *(pointer)* — draw list pointer.
+  - `minX` *(real)* — clip minimum X.
+  - `minY` *(real)* — clip minimum Y.
+  - `maxX` *(real)* — clip maximum X.
+  - `maxY` *(real)* — clip maximum Y.
+  - `intersectWithCurrentClipRect?` *(bool)* — intersect with the current clip rectangle.
+- `DrawListPushClipRectFullScreen(pDrawList : pointer)` - Push a full-screen clip rectangle.
+  - `pDrawList` *(pointer)* — draw list pointer.
+- `DrawListPopClipRect(pDrawList : pointer)` - Pop a draw-list clip rectangle.
+  - `pDrawList` *(pointer)* — draw list pointer.
+- `DrawListPushTextureId(pDrawList : pointer, sprite : sprite_asset, index : int32)` - Push a texture ID from a sprite.
+  - `pDrawList` *(pointer)* — draw list pointer.
+  - `sprite` *(sprite_asset)* — sprite asset.
+  - `index` *(int32)* — sprite frame index.
+- `DrawListPopTextureId(pDrawList : pointer)` - Pop a texture ID.
+  - `pDrawList` *(pointer)* — draw list pointer.
+- `DrawListFlagsGet(pDrawList : pointer) : uint32` - Get a draw list's flags.
+  - `pDrawList` *(pointer)* — draw list pointer.
+- `DrawListFlagsSet(pDrawList : pointer, flags : uint32)` - Set a draw list's flags.
+  - `pDrawList` *(pointer)* — draw list pointer.
+  - `flags` *(uint32)* — `ImDrawListFlags` to set.
+- `DrawListFlagsToggle(pDrawList : pointer, flags : uint32) : bool` - Toggle a draw list's flags.
+  - `pDrawList` *(pointer)* — draw list pointer.
+  - `flags` *(uint32)* — `ImDrawListFlags` to toggle.
+
+### Drag Functions
+
+- `DragFloat(label : string, v : real, vSpeed? : real = 1, vMin? : real = 0, vMax? : real = 0, format? : string, flags? : uint32 = 0) : real` - Draggable float.
+  - `label` *(string)* — widget label; supports `##` suffix for a hidden ID.
+  - `v` *(real)* — current value; modified when the user drags.
+  - `vSpeed?` *(real)* — drag speed (value change per pixel).
+  - `vMin?` *(real)* — minimum value.
+  - `vMax?` *(real)* — maximum value.
+  - `format?` *(string)* — printf-style format string.
+  - `flags?` *(uint32)* — `ImGuiSliderFlags` controlling behavior.
+- `DragFloat2(label : string, v : array, vSpeed? : real = 1, vMin? : real = 0, vMax? : real = 0, format? : string, flags? : uint32 = 0) : bool` - 2-component draggable float.
+  - `label` *(string)* — widget label.
+  - `v` *(array)* — value array (modified in place).
+  - `vSpeed?` *(real)* — drag speed.
+  - `vMin?` *(real)* — minimum value.
+  - `vMax?` *(real)* — maximum value.
+  - `format?` *(string)* — printf-style format string.
+  - `flags?` *(uint32)* — `ImGuiSliderFlags` controlling behavior.
+- `DragFloat3(label : string, v : array, vSpeed? : real = 1, vMin? : real = 0, vMax? : real = 0, format? : string, flags? : uint32 = 0) : bool` - 3-component draggable float.
+  - `label` *(string)* — widget label.
+  - `v` *(array)* — value array (modified in place).
+  - `vSpeed?` *(real)* — drag speed.
+  - `vMin?` *(real)* — minimum value.
+  - `vMax?` *(real)* — maximum value.
+  - `format?` *(string)* — printf-style format string.
+  - `flags?` *(uint32)* — `ImGuiSliderFlags` controlling behavior.
+- `DragFloat4(label : string, v : array, vSpeed? : real = 1, vMin? : real = 0, vMax? : real = 0, format? : string, flags? : uint32 = 0) : bool` - 4-component draggable float.
+  - `label` *(string)* — widget label.
+  - `v` *(array)* — value array (modified in place).
+  - `vSpeed?` *(real)* — drag speed.
+  - `vMin?` *(real)* — minimum value.
+  - `vMax?` *(real)* — maximum value.
+  - `format?` *(string)* — printf-style format string.
+  - `flags?` *(uint32)* — `ImGuiSliderFlags` controlling behavior.
+- `DragFloatN(label : string, v : array, vSpeed? : real = 1, vMin? : real = 0, vMax? : real = 0, format? : string, flags? : uint32 = 0, count? : int32 = -1) : bool` - N-component draggable float.
+  - `label` *(string)* — widget label.
+  - `v` *(array)* — value array (modified in place).
+  - `vSpeed?` *(real)* — drag speed.
+  - `vMin?` *(real)* — minimum value.
+  - `vMax?` *(real)* — maximum value.
+  - `format?` *(string)* — printf-style format string.
+  - `flags?` *(uint32)* — `ImGuiSliderFlags` controlling behavior.
+  - `count?` *(int32)* — number of components; -1 to use the array length.
+- `DragFloatRange2(label : string, v : array, vSpeed? : real = 1, vMin? : real = 0, vMax? : real = 0, formatMin? : string, formatMax? : string, flags? : uint32 = 0) : bool` - Draggable float range (min/max).
+  - `label` *(string)* — widget label.
+  - `v` *(array)* — 2-element [min, max] array (modified in place).
+  - `vSpeed?` *(real)* — drag speed.
+  - `vMin?` *(real)* — minimum allowed value.
+  - `vMax?` *(real)* — maximum allowed value.
+  - `formatMin?` *(string)* — printf-style format for the min value.
+  - `formatMax?` *(string)* — printf-style format for the max value.
+  - `flags?` *(uint32)* — `ImGuiSliderFlags` controlling behavior.
+- `DragInt(label : string, v : int32, vSpeed? : real = 1, vMin? : int32 = 0, vMax? : int32 = 0, format? : string, flags? : uint32 = 0) : int32` - Draggable integer.
+  - `label` *(string)* — widget label.
+  - `v` *(int32)* — current value; modified when the user drags.
+  - `vSpeed?` *(real)* — drag speed.
+  - `vMin?` *(int32)* — minimum value.
+  - `vMax?` *(int32)* — maximum value.
+  - `format?` *(string)* — printf-style format string.
+  - `flags?` *(uint32)* — `ImGuiSliderFlags` controlling behavior.
+- `DragInt2(label : string, v : array, vSpeed? : real = 1, vMin? : int32 = 0, vMax? : int32 = 0, format? : string, flags? : uint32 = 0) : bool` - 2-component draggable integer.
+  - `label` *(string)* — widget label.
+  - `v` *(array)* — value array (modified in place).
+  - `vSpeed?` *(real)* — drag speed.
+  - `vMin?` *(int32)* — minimum value.
+  - `vMax?` *(int32)* — maximum value.
+  - `format?` *(string)* — printf-style format string.
+  - `flags?` *(uint32)* — `ImGuiSliderFlags` controlling behavior.
+- `DragInt3(label : string, v : array, vSpeed? : real = 1, vMin? : int32 = 0, vMax? : int32 = 0, format? : string, flags? : uint32 = 0) : bool` - 3-component draggable integer.
+  - `label` *(string)* — widget label.
+  - `v` *(array)* — value array (modified in place).
+  - `vSpeed?` *(real)* — drag speed.
+  - `vMin?` *(int32)* — minimum value.
+  - `vMax?` *(int32)* — maximum value.
+  - `format?` *(string)* — printf-style format string.
+  - `flags?` *(uint32)* — `ImGuiSliderFlags` controlling behavior.
+- `DragInt4(label : string, v : array, vSpeed? : real = 1, vMin? : int32 = 0, vMax? : int32 = 0, format? : string, flags? : uint32 = 0) : bool` - 4-component draggable integer.
+  - `label` *(string)* — widget label.
+  - `v` *(array)* — value array (modified in place).
+  - `vSpeed?` *(real)* — drag speed.
+  - `vMin?` *(int32)* — minimum value.
+  - `vMax?` *(int32)* — maximum value.
+  - `format?` *(string)* — printf-style format string.
+  - `flags?` *(uint32)* — `ImGuiSliderFlags` controlling behavior.
+- `DragIntN(label : string, v : array, vSpeed? : real = 1, vMin? : int32 = 0, vMax? : int32 = 0, format? : string, flags? : uint32 = 0, count? : int32 = -1) : bool` - N-component draggable integer.
+  - `label` *(string)* — widget label.
+  - `v` *(array)* — value array (modified in place).
+  - `vSpeed?` *(real)* — drag speed.
+  - `vMin?` *(int32)* — minimum value.
+  - `vMax?` *(int32)* — maximum value.
+  - `format?` *(string)* — printf-style format string.
+  - `flags?` *(uint32)* — `ImGuiSliderFlags` controlling behavior.
+  - `count?` *(int32)* — number of components; -1 to use the array length.
+- `DragIntRange2(label : string, v : array, vSpeed? : real = 1, vMin? : int32 = 0, vMax? : int32 = 0, formatMin? : string, formatMax? : string, flags? : uint32 = 0) : bool` - Draggable integer range (min/max).
+  - `label` *(string)* — widget label.
+  - `v` *(array)* — 2-element [min, max] array (modified in place).
+  - `vSpeed?` *(real)* — drag speed.
+  - `vMin?` *(int32)* — minimum allowed value.
+  - `vMax?` *(int32)* — maximum allowed value.
+  - `formatMin?` *(string)* — printf-style format for the min value.
+  - `formatMax?` *(string)* — printf-style format for the max value.
+  - `flags?` *(uint32)* — `ImGuiSliderFlags` controlling behavior.
+
+### Docking Functions
+
+- `DockSpace(id : uint32, width? : real = 0, height? : real = 0, flags? : uint32 = 0, windowClass? : object) : uint32` - Create a dock space.
+  - `id` *(uint32)* — unique dock space identifier.
+  - `width?` *(real)* — desired width in pixels; 0 = full available width.
+  - `height?` *(real)* — desired height in pixels; 0 = full available height.
+  - `flags?` *(uint32)* — `ImGuiDockNodeFlags` controlling behavior.
+  - `windowClass?` *(object)* — optional ImGuiWindowClass for docking constraints.
+- `FindViewportById(id : uint32) : pointer` - Find a viewport by ID.
+  - `id` *(uint32)* — viewport identifier to search for.
+- `FindViewportByPlatformHandle(id : pointer) : pointer` - Find a viewport by platform handle.
+  - `id` *(pointer)* — platform-specific handle (HWND on Windows, etc.).
+- `DockSpaceOverViewport(id? : uint32 = 0, idViewport? : uint32 = 0, flags? : uint32 = 0, windowClass? : object) : uint32` - Create a dock space over a viewport.
+  - `id?` *(uint32)* — dock space ID.
+  - `idViewport?` *(uint32)* — viewport ID.
+  - `flags?` *(uint32)* — `ImGuiDockNodeFlags` controlling behavior.
+  - `windowClass?` *(object)* — optional window class.
+- `SetNextWindowDockID(id : uint32, cond? : uint32 = 0)` - Dock the next window to a node.
+  - `id` *(uint32)* — target dock node ID.
+  - `cond?` *(uint32)* — `ImGuiCond` controlling when the dock is applied.
+- `SetNextWindowClass(windowClass? : object)` - Set the window class for the next window.
+  - `windowClass?` *(object)* — window class object.
+- `GetWindowDockID() : uint32` - Get the current window's dock ID.
+- `IsWindowDocked() : bool` - Returns true if the current window is docked.
+- `DockBuilderDockWindow(name : string, nodeId : uint32)` - Dock a named window into a node.
+  - `name` *(string)* — window name.
+  - `nodeId` *(uint32)* — target dock node ID.
+- `DockBuilderGetNode(nodeId : uint32) : pointer` - Get a dock node.
+  - `nodeId` *(uint32)* — dock node ID.
+- `DockBuilderGetCentralNode(nodeId : uint32) : pointer` - Get the central dock node.
+  - `nodeId` *(uint32)* — dock node ID.
+- `DockBuilderAddNode(nodeId : uint32, flags? : uint32 = 0) : uint32` - Add a dock node.
+  - `nodeId` *(uint32)* — dock node ID.
+  - `flags?` *(uint32)* — `ImGuiDockNodeFlags` controlling the node.
+- `DockBuilderRemoveNode(nodeId : uint32)` - Remove a dock node.
+  - `nodeId` *(uint32)* — dock node ID.
+- `DockBuilderRemoveNodeDockedWindows(nodeId : uint32, clearSettingsRef? : bool = true)` - Remove docked windows from a node.
+  - `nodeId` *(uint32)* — dock node ID.
+  - `clearSettingsRef?` *(bool)* — clear stored window settings.
+- `DockBuilderRemoveNodeChildNodes(nodeId : uint32)` - Remove a node's child nodes.
+  - `nodeId` *(uint32)* — dock node ID.
+- `DockBuilderSetNodePos(nodeId : uint32, x : real, y : real)` - Set a dock node's position.
+  - `nodeId` *(uint32)* — dock node ID.
+  - `x` *(real)* — X position.
+  - `y` *(real)* — Y position.
+- `DockBuilderSetNodeSize(nodeId : uint32, w : real, h : real)` - Set a dock node's size.
+  - `nodeId` *(uint32)* — dock node ID.
+  - `w` *(real)* — node width.
+  - `h` *(real)* — node height.
+- `DockBuilderSplitNode(nodeId : uint32, splitDir : int32, sizeRatioForNodeAtDir : real) : array` - Split a dock node; returns the resulting node IDs.
+  - `nodeId` *(uint32)* — dock node ID to split.
+  - `splitDir` *(int32)* — split direction (`ImGuiDir`).
+  - `sizeRatioForNodeAtDir` *(real)* — size ratio for the node at the split direction.
+- `DockBuilderCopyDockSpace(srcDockspaceID : uint32, dstDockspaceID : uint32, windowRemapPairs? : array)` - Copy a dock space.
+  - `srcDockspaceID` *(uint32)* — source dock space ID.
+  - `dstDockspaceID` *(uint32)* — destination dock space ID.
+  - `windowRemapPairs?` *(array)* — window remap pairs.
+- `DockBuilderCopyNode(srcDockspaceID : uint32, dstDockspaceID : uint32, windowRemapPairs? : array)` - Copy a dock node.
+  - `srcDockspaceID` *(uint32)* — source node ID.
+  - `dstDockspaceID` *(uint32)* — destination node ID.
+  - `windowRemapPairs?` *(array)* — window remap pairs.
+- `DockBuilderCopyWindowSettings(srcName : string, dstName : string)` - Copy window settings between windows.
+  - `srcName` *(string)* — source window name.
+  - `dstName` *(string)* — destination window name.
+- `DockBuilderFinish(id : uint32)` - Finalise the dock builder layout.
+  - `id` *(uint32)* — dock space ID.
+
+### Combo Functions
+
+- `BeginCombo(label : string, preview : string, flags? : uint32 = 0) : bool` - Begin a custom combo box.
+  - `label` *(string)* — combo display text; supports `##` suffix for a hidden ID.
+  - `preview` *(string)* — text to display when the combo is closed.
+  - `flags?` *(uint32)* — `ImGuiComboFlags` controlling behavior.
+- `EndCombo()` - End a combo box.
+- `Combo(label : string, currentItem : int32, items? : array, popupMaxHeightInItems? : int32 = -1) : int32` - Simple combo box from an array; returns the selected index.
+  - `label` *(string)* — combo display text; supports `##` suffix for a hidden ID.
+  - `currentItem` *(int32)* — current selected item index; modified when the user selects.
+  - `items?` *(array)* — array of item strings.
+  - `popupMaxHeightInItems?` *(int32)* — maximum popup height, measured in items.
+
+### Colour Functions
+
+British and American spellings are aliases of the same native implementation. All colour editor/picker functions take a `label`, a `col` value (a packed colour, or a struct for the `s` variants), and optional `flags` (`ImGuiColorEditFlags`).
+
+- `ColourEdit3(label : string, col : uint32, flags? : uint32 = 0) : uint32` - RGB colour editor (British spelling).
+  - `label` *(string)* — label text for the colour editor.
+  - `col` *(uint32)* — colour value.
+  - `flags?` *(uint32)* — `ImGuiColorEditFlags` for picker display.
+- `ColourPicker3(label : string, col : uint32, flags? : uint32 = 0) : uint32` - RGB colour picker (British spelling).
+  - `label` *(string)* — label text for the colour editor.
+  - `col` *(uint32)* — colour value.
+  - `flags?` *(uint32)* — `ImGuiColorEditFlags` for picker display.
+- `ColourEdit4(label : string, col : uint32, flags? : uint32 = 0) : uint32` - RGBA colour editor (British spelling).
+  - `label` *(string)* — label text for the colour editor.
+  - `col` *(uint32)* — colour value.
+  - `flags?` *(uint32)* — `ImGuiColorEditFlags` for picker display.
+- `ColourPicker4(label : string, col : uint32, flags? : uint32 = 0) : uint32` - RGBA colour picker (British spelling).
+  - `label` *(string)* — label text for the colour editor.
+  - `col` *(uint32)* — colour value.
+  - `flags?` *(uint32)* — `ImGuiColorEditFlags` for picker display.
+- `ColourEdit3s(label : string, col : object, flags? : uint32 = 0) : bool` - RGB colour editor backed by a struct (British spelling).
+  - `label` *(string)* — label text for the colour editor.
+  - `col` *(object)* — colour struct (float3) modified in place.
+  - `flags?` *(uint32)* — `ImGuiColorEditFlags` for picker display.
+- `ColourPicker3s(label : string, col : object, flags? : uint32 = 0) : bool` - RGB colour picker backed by a struct (British spelling).
+  - `label` *(string)* — label text for the colour editor.
+  - `col` *(object)* — colour struct (float3) modified in place.
+  - `flags?` *(uint32)* — `ImGuiColorEditFlags` for picker display.
+- `ColourEdit4s(label : string, col : object, flags? : uint32 = 0) : bool` - RGBA colour editor backed by a struct (British spelling).
+  - `label` *(string)* — label text for the colour editor.
+  - `col` *(object)* — colour struct (float4) modified in place.
+  - `flags?` *(uint32)* — `ImGuiColorEditFlags` for picker display.
+- `ColourPicker4s(label : string, col : object, flags? : uint32 = 0) : bool` - RGBA colour picker backed by a struct (British spelling).
+  - `label` *(string)* — label text for the colour editor.
+  - `col` *(object)* — colour struct (float4) modified in place.
+  - `flags?` *(uint32)* — `ImGuiColorEditFlags` for picker display.
+- `ColourButton(label : string, col : uint32, alpha? : real = -1.0, flags? : uint32 = 0, width? : real = 0, height? : real = 0) : bool` - Colour swatch button (British spelling).
+  - `label` *(string)* — button identifier; supports `##` suffix for a hidden ID.
+  - `col` *(uint32)* — colour swatch value (RGB).
+  - `alpha?` *(real)* — alpha component (-1 to use col's alpha); 0 (transparent) to 1 (opaque).
+  - `flags?` *(uint32)* — `ImGuiColorEditFlags` controlling picker behavior.
+  - `width?` *(real)* — swatch width in pixels; 0 = auto width based on button height.
+  - `height?` *(real)* — swatch height in pixels; 0 = default button height.
+- `SetColourEditOptions(flags : uint32)` - Set default colour-editor options (British spelling).
+  - `flags` *(uint32)* — default `ImGuiColorEditFlags` for all colour editor widgets.
+- `ColorEdit3(label : string, col : uint32, flags? : uint32 = 0) : uint32` - RGB colour editor (American spelling).
+  - `label` *(string)* — label text for the color editor; supports `##` suffix for a hidden ID.
+  - `col` *(uint32)* — RGB color value; modified when the user changes the color.
+  - `flags?` *(uint32)* — `ImGuiColorEditFlags` controlling picker display and behavior.
+- `ColorPicker3(label : string, col : uint32, flags? : uint32 = 0) : uint32` - RGB colour picker (American spelling).
+  - `label` *(string)* — label text for the colour editor.
+  - `col` *(uint32)* — colour value.
+  - `flags?` *(uint32)* — `ImGuiColorEditFlags` for picker display.
+- `ColorEdit4(label : string, col : uint32, flags? : uint32 = 0) : uint32` - RGBA colour editor (American spelling).
+  - `label` *(string)* — label text for the colour editor.
+  - `col` *(uint32)* — colour value.
+  - `flags?` *(uint32)* — `ImGuiColorEditFlags` for picker display.
+- `ColorPicker4(label : string, col : uint32, flags? : uint32 = 0) : uint32` - RGBA colour picker (American spelling).
+  - `label` *(string)* — label text for the colour editor.
+  - `col` *(uint32)* — colour value.
+  - `flags?` *(uint32)* — `ImGuiColorEditFlags` for picker display.
+- `ColorEdit3s(label : string, col : object, flags? : uint32 = 0) : bool` - RGB colour editor backed by a struct (American spelling).
+  - `label` *(string)* — label text for the colour editor.
+  - `col` *(object)* — colour struct (float3) modified in place.
+  - `flags?` *(uint32)* — `ImGuiColorEditFlags` for picker display.
+- `ColorPicker3s(label : string, col : object, flags? : uint32 = 0) : bool` - RGB colour picker backed by a struct (American spelling).
+  - `label` *(string)* — label text for the colour editor.
+  - `col` *(object)* — colour struct (float3) modified in place.
+  - `flags?` *(uint32)* — `ImGuiColorEditFlags` for picker display.
+- `ColorEdit4s(label : string, col : object, flags? : uint32 = 0) : bool` - RGBA colour editor backed by a struct (American spelling).
+  - `label` *(string)* — label text for the colour editor.
+  - `col` *(object)* — colour struct (float4) modified in place.
+  - `flags?` *(uint32)* — `ImGuiColorEditFlags` for picker display.
+- `ColorPicker4s(label : string, col : object, flags? : uint32 = 0) : bool` - RGBA colour picker backed by a struct (American spelling).
+  - `label` *(string)* — label text for the colour editor.
+  - `col` *(object)* — colour struct (float4) modified in place.
+  - `flags?` *(uint32)* — `ImGuiColorEditFlags` for picker display.
+- `ColorButton(label : string, col : uint32, alpha? : real = -1.0, flags? : uint32 = 0, width? : real = 0, height? : real = 0) : bool` - Colour swatch button (American spelling).
+  - `label` *(string)* — button identifier; supports `##` suffix for a hidden ID.
+  - `col` *(uint32)* — colour swatch value (RGB).
+  - `alpha?` *(real)* — alpha component (-1 to use col's alpha).
+  - `flags?` *(uint32)* — `ImGuiColorEditFlags` controlling picker behavior.
+  - `width?` *(real)* — swatch width in pixels; 0 = auto.
+  - `height?` *(real)* — swatch height in pixels; 0 = default.
+- `SetColorEditOptions(flags : uint32)` - Set default colour-editor options (American spelling).
+  - `flags` *(uint32)* — default `ImGuiColorEditFlags` for all colour editors.
+
+
+### Enums
+
+Here are the enumerations for the Dear ImGui flags in GML format for the ImGui flags
+
+```
+
+/**
+	* @enum ImGuiWindowFlags
+	* @desc Flags for ImGui::Begin()
+	*
+	*/
+enum ImGuiWindowFlags {
+	None = 0,
+	NoTitleBar = 1 << 0,
+	NoResize = 1 << 1,
+	NoMove = 1 << 2,
+	NoScrollbar = 1 << 3,
+	NoScrollWithMouse = 1 << 4,
+	NoCollapse = 1 << 5,
+	AlwaysAutoResize = 1 << 6,
+	NoBackground = 1 << 7,
+	NoSavedSettings = 1 << 8,
+	NoMouseInputs = 1 << 9,
+	MenuBar = 1 << 10,
+	HorizontalScrollbar = 1 << 11,
+	NoFocusOnAppearing = 1 << 12,
+	NoBringToFrontOnFocus = 1 << 13,
+	AlwaysVerticalScrollbar = 1 << 14,
+	AlwaysHorizontalScrollbar = 1 << 15,
+	NoNavInputs = 1 << 16,
+	NoNavFocus = 1 << 17,
+	UnsavedDocument = 1 << 18,
+	NoDocking = 1 << 19,
+	NoNav = ImGuiWindowFlags.NoNavInputs | ImGuiWindowFlags.NoNavFocus,
+	NoDecoration = ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoCollapse,
+	NoInputs = ImGuiWindowFlags.NoMouseInputs | ImGuiWindowFlags.NoNavInputs | ImGuiWindowFlags.NoNavFocus,
+	DockNodeHost = 1 << 23,
+	ChildWindow = 1 << 24,
+	Tooltip = 1 << 25,
+	Popup = 1 << 26,
+	Modal = 1 << 27,
+	ChildMenu = 1 << 28,
+	NavFlattened = 1 << 29,
+	AlwaysUseWindowPadding = 1 << 30,
+}
+
+/**
+	* @enum ImGuiChildFlags
+	* @desc Flags for ImGui::BeginChild()
+	*
+	*/
+enum ImGuiChildFlags {
+	None = 0,
+	Borders = 1 << 0,
+	AlwaysUseWindowPadding = 1 << 1,
+	ResizeX = 1 << 2,
+	ResizeY = 1 << 3,
+	AutoResizeX = 1 << 4,
+	AutoResizeY = 1 << 5,
+	AlwaysAutoResize = 1 << 6,
+	FrameStyle = 1 << 7,
+	NavFlattened = 1 << 8,
+	Border = ImGuiChildFlags.Borders,
+}
+
+/**
+	* @enum ImGuiItemFlags
+	* @desc Flags for ImGui::PushItemFlag()
+	*
+	*/
+enum ImGuiItemFlags {
+	None = 0,
+	NoTabStop = 1 << 0,
+	NoNav = 1 << 1,
+	NoNavDefaultFocus = 1 << 2,
+	ButtonRepeat = 1 << 3,
+	AutoClosePopups = 1 << 4,
+	AllowDuplicateId = 1 << 5,
+}
+
+/**
+	* @enum ImGuiInputTextFlags
+	* @desc Flags for ImGui::InputText()
+	*
+	*/
+enum ImGuiInputTextFlags {
+	None = 0,
+	CharsDecimal = 1 << 0,
+	CharsHexadecimal = 1 << 1,
+	CharsScientific = 1 << 2,
+	CharsUppercase = 1 << 3,
+	CharsNoBlank = 1 << 4,
+	AllowTabInput = 1 << 5,
+	EnterReturnsTrue = 1 << 6,
+	EscapeClearsAll = 1 << 7,
+	CtrlEnterForNewLine = 1 << 8,
+	ReadOnly = 1 << 9,
+	Password = 1 << 10,
+	AlwaysOverwrite = 1 << 11,
+	AutoSelectAll = 1 << 12,
+	ParseEmptyRefVal = 1 << 13,
+	DisplayEmptyRefVal = 1 << 14,
+	NoHorizontalScroll = 1 << 15,
+	NoUndoRedo = 1 << 16,
+	ElideLeft = 1 << 17,
+	CallbackCompletion = 1 << 18,
+	CallbackHistory = 1 << 19,
+	CallbackAlways = 1 << 20,
+	CallbackCharFilter = 1 << 21,
+	CallbackResize = 1 << 22,
+	CallbackEdit = 1 << 23,
+	WordWrap = 1 << 24,
+}
+
+/**
+	* @enum ImGuiTreeNodeFlags
+	* @desc Flags for ImGui::TreeNodeEx(), ImGui::CollapsingHeader*()
+	*
+	*/
+enum ImGuiTreeNodeFlags {
+	None = 0,
+	Selected = 1 << 0,
+	Framed = 1 << 1,
+	AllowOverlap = 1 << 2,
+	NoTreePushOnOpen = 1 << 3,
+	NoAutoOpenOnLog = 1 << 4,
+	DefaultOpen = 1 << 5,
+	OpenOnDoubleClick = 1 << 6,
+	OpenOnArrow = 1 << 7,
+	Leaf = 1 << 8,
+	Bullet = 1 << 9,
+	FramePadding = 1 << 10,
+	SpanAvailWidth = 1 << 11,
+	SpanFullWidth = 1 << 12,
+	SpanLabelWidth = 1 << 13,
+	SpanAllColumns = 1 << 14,
+	LabelSpanAllColumns = 1 << 15,
+	NavLeftJumpsToParent = 1 << 17,
+	CollapsingHeader = ImGuiTreeNodeFlags.Framed | ImGuiTreeNodeFlags.NoTreePushOnOpen | ImGuiTreeNodeFlags.NoAutoOpenOnLog,
+	DrawLinesNone = 1 << 18,
+	DrawLinesFull = 1 << 19,
+	DrawLinesToNodes = 1 << 20,
+	NavLeftJumpsBackHere = ImGuiTreeNodeFlags.NavLeftJumpsToParent,
+	SpanTextWidth = ImGuiTreeNodeFlags.SpanLabelWidth,
+	AllowItemOverlap = ImGuiTreeNodeFlags.AllowOverlap,
+}
+
+/**
+	* @enum ImGuiPopupFlags
+	* @desc Flags for OpenPopup*(), BeginPopupContext*(), IsPopupOpen() functions.
+	*
+	*/
+enum ImGuiPopupFlags {
+	None = 0,
+	MouseButtonLeft = 0,
+	MouseButtonRight = 1,
+	MouseButtonMiddle = 2,
+	MouseButtonMask_ = 0x1F,
+	MouseButtonDefault_ = 1,
+	NoReopen = 1 << 5,
+	NoOpenOverExistingPopup = 1 << 7,
+	NoOpenOverItems = 1 << 8,
+	AnyPopupId = 1 << 10,
+	AnyPopupLevel = 1 << 11,
+	AnyPopup = ImGuiPopupFlags.AnyPopupId | ImGuiPopupFlags.AnyPopupLevel,
+}
+
+/**
+	* @enum ImGuiSelectableFlags
+	* @desc Flags for ImGui::Selectable()
+	*
+	*/
+enum ImGuiSelectableFlags {
+	None = 0,
+	NoAutoClosePopups = 1 << 0,
+	SpanAllColumns = 1 << 1,
+	AllowDoubleClick = 1 << 2,
+	Disabled = 1 << 3,
+	AllowOverlap = 1 << 4,
+	Highlight = 1 << 5,
+	SelectOnNav = 1 << 6,
+	DontClosePopups = ImGuiSelectableFlags.NoAutoClosePopups,
+	AllowItemOverlap = ImGuiSelectableFlags.AllowOverlap,
+}
+
+/**
+	* @enum ImGuiComboFlags
+	* @desc Flags for ImGui::BeginCombo()
+	*
+	*/
+enum ImGuiComboFlags {
+	None = 0,
+	PopupAlignLeft = 1 << 0,
+	HeightSmall = 1 << 1,
+	HeightRegular = 1 << 2,
+	HeightLarge = 1 << 3,
+	HeightLargest = 1 << 4,
+	NoArrowButton = 1 << 5,
+	NoPreview = 1 << 6,
+	WidthFitPreview = 1 << 7,
+	HeightMask_ = ImGuiComboFlags.HeightSmall | ImGuiComboFlags.HeightRegular | ImGuiComboFlags.HeightLarge | ImGuiComboFlags.HeightLargest,
+}
+
+/**
+	* @enum ImGuiTabBarFlags
+	* @desc Flags for ImGui::BeginTabBar()
+	*
+	*/
+enum ImGuiTabBarFlags {
+	None = 0,
+	Reorderable = 1 << 0,
+	AutoSelectNewTabs = 1 << 1,
+	TabListPopupButton = 1 << 2,
+	NoCloseWithMiddleMouseButton = 1 << 3,
+	NoTabListScrollingButtons = 1 << 4,
+	NoTooltip = 1 << 5,
+	DrawSelectedOverline = 1 << 6,
+	FittingPolicyMixed = 1 << 7,
+	FittingPolicyShrink = 1 << 8,
+	FittingPolicyScroll = 1 << 9,
+	FittingPolicyMask_ = ImGuiTabBarFlags.FittingPolicyMixed | ImGuiTabBarFlags.FittingPolicyShrink | ImGuiTabBarFlags.FittingPolicyScroll,
+	FittingPolicyDefault_ = ImGuiTabBarFlags.FittingPolicyMixed,
+	FittingPolicyResizeDown = ImGuiTabBarFlags.FittingPolicyShrink,
+}
+
+/**
+	* @enum ImGuiTabItemFlags
+	* @desc Flags for ImGui::BeginTabItem()
+	*
+	*/
+enum ImGuiTabItemFlags {
+	None = 0,
+	UnsavedDocument = 1 << 0,
+	SetSelected = 1 << 1,
+	NoCloseWithMiddleMouseButton = 1 << 2,
+	NoPushId = 1 << 3,
+	NoTooltip = 1 << 4,
+	NoReorder = 1 << 5,
+	Leading = 1 << 6,
+	Trailing = 1 << 7,
+	NoAssumedClosure = 1 << 8,
+}
+
+/**
+	* @enum ImGuiFocusedFlags
+	* @desc Flags for ImGui::IsWindowFocused()
+	*
+	*/
+enum ImGuiFocusedFlags {
+	None = 0,
+	ChildWindows = 1 << 0,
+	RootWindow = 1 << 1,
+	AnyWindow = 1 << 2,
+	NoPopupHierarchy = 1 << 3,
+	DockHierarchy = 1 << 4,
+	RootAndChildWindows = ImGuiFocusedFlags.RootWindow | ImGuiFocusedFlags.ChildWindows,
+}
+
+/**
+	* @enum ImGuiHoveredFlags
+	* @desc Flags for ImGui::IsItemHovered(), ImGui::IsWindowHovered()
+	*
+	*/
+enum ImGuiHoveredFlags {
+	None = 0,
+	ChildWindows = 1 << 0,
+	RootWindow = 1 << 1,
+	AnyWindow = 1 << 2,
+	NoPopupHierarchy = 1 << 3,
+	DockHierarchy = 1 << 4,
+	AllowWhenBlockedByPopup = 1 << 5,
+	AllowWhenBlockedByActiveItem = 1 << 7,
+	AllowWhenOverlappedByItem = 1 << 8,
+	AllowWhenOverlappedByWindow = 1 << 9,
+	AllowWhenDisabled = 1 << 10,
+	NoNavOverride = 1 << 11,
+	AllowWhenOverlapped = ImGuiHoveredFlags.AllowWhenOverlappedByItem | ImGuiHoveredFlags.AllowWhenOverlappedByWindow,
+	RectOnly = ImGuiHoveredFlags.AllowWhenBlockedByPopup | ImGuiHoveredFlags.AllowWhenBlockedByActiveItem | ImGuiHoveredFlags.AllowWhenOverlapped,
+	RootAndChildWindows = ImGuiHoveredFlags.RootWindow | ImGuiHoveredFlags.ChildWindows,
+	ForTooltip = 1 << 12,
+	Stationary = 1 << 13,
+	DelayNone = 1 << 14,
+	DelayShort = 1 << 15,
+	DelayNormal = 1 << 16,
+	NoSharedDelay = 1 << 17,
+}
+
+/**
+	* @enum ImGuiDockNodeFlags
+	* @desc Flags for ImGui::DockSpace(), shared/inherited by child nodes.
+	*
+	*/
+enum ImGuiDockNodeFlags {
+	None = 0,
+	KeepAliveOnly = 1 << 0,
+	NoDockingOverCentralNode = 1 << 2,
+	PassthruCentralNode = 1 << 3,
+	NoDockingSplit = 1 << 4,
+	NoResize = 1 << 5,
+	AutoHideTabBar = 1 << 6,
+	NoUndocking = 1 << 7,
+	NoSplit = ImGuiDockNodeFlags.NoDockingSplit,
+	NoDockingInCentralNode = ImGuiDockNodeFlags.NoDockingOverCentralNode,
+}
+
+/**
+	* @enum ImGuiDragDropFlags
+	* @desc Flags for ImGui::BeginDragDropSource(), ImGui::AcceptDragDropPayload()
+	*
+	*/
+enum ImGuiDragDropFlags {
+	None = 0,
+	SourceNoPreviewTooltip = 1 << 0,
+	SourceNoDisableHover = 1 << 1,
+	SourceNoHoldToOpenOthers = 1 << 2,
+	SourceAllowNullID = 1 << 3,
+	SourceExtern = 1 << 4,
+	PayloadAutoExpire = 1 << 5,
+	PayloadNoCrossContext = 1 << 6,
+	PayloadNoCrossProcess = 1 << 7,
+	AcceptBeforeDelivery = 1 << 10,
+	AcceptNoDrawDefaultRect = 1 << 11,
+	AcceptNoPreviewTooltip = 1 << 12,
+	AcceptPeekOnly = ImGuiDragDropFlags.AcceptBeforeDelivery | ImGuiDragDropFlags.AcceptNoDrawDefaultRect,
+	SourceAutoExpirePayload = ImGuiDragDropFlags.PayloadAutoExpire,
+}
+
+/**
+	* @enum ImGuiDataType
+	* @desc float[4]: Standard type for colors. User code may use this type.
+	*
+	*/
+enum ImGuiDataType {
+	S8,
+	U8,
+	S16,
+	U16,
+	S32,
+	U32,
+	S64,
+	U64,
+	Float,
+	Double,
+	Bool,
+	String,
+}
+
+/**
+	* @enum ImGuiDir
+	* @desc A cardinal direction
+	*
+	*/
+enum ImGuiDir {
+	None = - 1,
+	Left = 0,
+	Right = 1,
+	Up = 2,
+	Down = 3,
+}
+
+/**
+	* @enum ImGuiSortDirection
+	* @desc A sorting direction
+	*
+	*/
+enum ImGuiSortDirection {
+	None = 0,
+	Ascending = 1,
+	Descending = 2,
+}
+
+/**
+	* @enum ImGuiInputFlags
+	* @desc Flags for Shortcut(), SetNextItemShortcut(),
+	*
+	*/
+enum ImGuiInputFlags {
+	None = 0,
+	Repeat = 1 << 0,
+	RouteActive = 1 << 10,
+	RouteFocused = 1 << 11,
+	RouteGlobal = 1 << 12,
+	RouteAlways = 1 << 13,
+	RouteOverFocused = 1 << 14,
+	RouteOverActive = 1 << 15,
+	RouteUnlessBgFocused = 1 << 16,
+	RouteFromRootWindow = 1 << 17,
+	Tooltip = 1 << 18,
+}
+
+/**
+	* @enum ImGuiConfigFlags
+	* @desc Configuration flags stored in io.ConfigFlags. Set by user/application.
+	*
+	*/
+enum ImGuiConfigFlags {
+	None = 0,
+	NavEnableKeyboard = 1 << 0,
+	NavEnableGamepad = 1 << 1,
+	NoMouse = 1 << 4,
+	NoMouseCursorChange = 1 << 5,
+	NoKeyboard = 1 << 6,
+	DockingEnable = 1 << 7,
+	ViewportsEnable = 1 << 10,
+	IsSRGB = 1 << 20,
+	IsTouchScreen = 1 << 21,
+	NavEnableSetMousePos = 1 << 2,
+	NavNoCaptureKeyboard = 1 << 3,
+	DpiEnableScaleFonts = 1 << 14,
+	DpiEnableScaleViewports = 1 << 15,
+}
+
+/**
+	* @enum ImGuiBackendFlags
+	* @desc Backend capabilities flags stored in io.BackendFlags. Set by imgui_impl_xxx or custom backend.
+	*
+	*/
+enum ImGuiBackendFlags {
+	None = 0,
+	HasGamepad = 1 << 0,
+	HasMouseCursors = 1 << 1,
+	HasSetMousePos = 1 << 2,
+	RendererHasVtxOffset = 1 << 3,
+	RendererHasTextures = 1 << 4,
+	PlatformHasViewports = 1 << 10,
+	HasMouseHoveredViewport = 1 << 11,
+	RendererHasViewports = 1 << 12,
+}
+
+/**
+	* @enum ImGuiCol
+	* @desc Enumeration for PushStyleColor() / PopStyleColor()
+	*
+	*/
+enum ImGuiCol {
+	Text,
+	TextDisabled,
+	WindowBg,
+	ChildBg,
+	PopupBg,
+	Border,
+	BorderShadow,
+	FrameBg,
+	FrameBgHovered,
+	FrameBgActive,
+	TitleBg,
+	TitleBgActive,
+	TitleBgCollapsed,
+	MenuBarBg,
+	ScrollbarBg,
+	ScrollbarGrab,
+	ScrollbarGrabHovered,
+	ScrollbarGrabActive,
+	CheckMark,
+	SliderGrab,
+	SliderGrabActive,
+	Button,
+	ButtonHovered,
+	ButtonActive,
+	Header,
+	HeaderHovered,
+	HeaderActive,
+	Separator,
+	SeparatorHovered,
+	SeparatorActive,
+	ResizeGrip,
+	ResizeGripHovered,
+	ResizeGripActive,
+	InputTextCursor,
+	TabHovered,
+	Tab,
+	TabSelected,
+	TabSelectedOverline,
+	TabDimmed,
+	TabDimmedSelected,
+	TabDimmedSelectedOverline,
+	DockingPreview,
+	DockingEmptyBg,
+	PlotLines,
+	PlotLinesHovered,
+	PlotHistogram,
+	PlotHistogramHovered,
+	TableHeaderBg,
+	TableBorderStrong,
+	TableBorderLight,
+	TableRowBg,
+	TableRowBgAlt,
+	TextLink,
+	TextSelectedBg,
+	TreeLines,
+	DragDropTarget,
+	NavCursor,
+	NavWindowingHighlight,
+	NavWindowingDimBg,
+	ModalWindowDimBg,
+	COUNT,
+	TabActive = ImGuiCol.TabSelected,
+	TabUnfocused = ImGuiCol.TabDimmed,
+	TabUnfocusedActive = ImGuiCol.TabDimmedSelected,
+	NavHighlight = ImGuiCol.NavCursor,
+}
+
+/**
+	* @enum ImGuiStyleVar
+	* @desc Enumeration for PushStyleVar() / PopStyleVar() to temporarily modify the ImGuiStyle structure.
+	*
+	*/
+enum ImGuiStyleVar {
+	Alpha,
+	DisabledAlpha,
+	WindowPadding,
+	WindowRounding,
+	WindowBorderSize,
+	WindowMinSize,
+	WindowTitleAlign,
+	ChildRounding,
+	ChildBorderSize,
+	PopupRounding,
+	PopupBorderSize,
+	FramePadding,
+	FrameRounding,
+	FrameBorderSize,
+	ItemSpacing,
+	ItemInnerSpacing,
+	IndentSpacing,
+	CellPadding,
+	ScrollbarSize,
+	ScrollbarRounding,
+	ScrollbarPadding,
+	GrabMinSize,
+	GrabRounding,
+	ImageBorderSize,
+	TabRounding,
+	TabBorderSize,
+	TabMinWidthBase,
+	TabMinWidthShrink,
+	TabBarBorderSize,
+	TabBarOverlineSize,
+	TableAngledHeadersAngle,
+	TableAngledHeadersTextAlign,
+	TreeLinesSize,
+	TreeLinesRounding,
+	ButtonTextAlign,
+	SelectableTextAlign,
+	SeparatorTextBorderSize,
+	SeparatorTextAlign,
+	SeparatorTextPadding,
+	DockingSeparatorSize,
+}
+
+/**
+	* @enum ImGuiButtonFlags
+	* @desc Flags for InvisibleButton() [extended in imgui_internal.h]
+	*
+	*/
+enum ImGuiButtonFlags {
+	None = 0,
+	MouseButtonLeft = 1 << 0,
+	MouseButtonRight = 1 << 1,
+	MouseButtonMiddle = 1 << 2,
+	MouseButtonMask_ = ImGuiButtonFlags.MouseButtonLeft | ImGuiButtonFlags.MouseButtonRight | ImGuiButtonFlags.MouseButtonMiddle,
+	EnableNav = 1 << 3,
+}
+
+/**
+	* @enum ImGuiColorEditFlags
+	* @desc Flags for ColorEdit3() / ColorEdit4() / ColorPicker3() / ColorPicker4() / ColorButton()
+	*
+	*/
+enum ImGuiColorEditFlags {
+	None = 0,
+	NoAlpha = 1 << 1,
+	NoPicker = 1 << 2,
+	NoOptions = 1 << 3,
+	NoSmallPreview = 1 << 4,
+	NoInputs = 1 << 5,
+	NoTooltip = 1 << 6,
+	NoLabel = 1 << 7,
+	NoSidePreview = 1 << 8,
+	NoDragDrop = 1 << 9,
+	NoBorder = 1 << 10,
+	AlphaOpaque = 1 << 11,
+	AlphaNoBg = 1 << 12,
+	AlphaPreviewHalf = 1 << 13,
+	AlphaBar = 1 << 16,
+	HDR = 1 << 19,
+	DisplayRGB = 1 << 20,
+	DisplayHSV = 1 << 21,
+	DisplayHex = 1 << 22,
+	Uint8 = 1 << 23,
+	Float = 1 << 24,
+	PickerHueBar = 1 << 25,
+	PickerHueWheel = 1 << 26,
+	InputRGB = 1 << 27,
+	InputHSV = 1 << 28,
+	DefaultOptions_ = ImGuiColorEditFlags.Uint8 | ImGuiColorEditFlags.DisplayRGB | ImGuiColorEditFlags.InputRGB | ImGuiColorEditFlags.PickerHueBar,
+	AlphaMask_ = ImGuiColorEditFlags.NoAlpha | ImGuiColorEditFlags.AlphaOpaque | ImGuiColorEditFlags.AlphaNoBg | ImGuiColorEditFlags.AlphaPreviewHalf,
+	DisplayMask_ = ImGuiColorEditFlags.DisplayRGB | ImGuiColorEditFlags.DisplayHSV | ImGuiColorEditFlags.DisplayHex,
+	DataTypeMask_ = ImGuiColorEditFlags.Uint8 | ImGuiColorEditFlags.Float,
+	PickerMask_ = ImGuiColorEditFlags.PickerHueWheel | ImGuiColorEditFlags.PickerHueBar,
+	InputMask_ = ImGuiColorEditFlags.InputRGB | ImGuiColorEditFlags.InputHSV,
+	AlphaPreview = 0,
+}
+
+/**
+	* @enum ImGuiSliderFlags
+	* @desc Flags for DragFloat(), DragInt(), SliderFloat(), SliderInt() etc.
+	*
+	*/
+enum ImGuiSliderFlags {
+	None = 0,
+	Logarithmic = 1 << 5,
+	NoRoundToFormat = 1 << 6,
+	NoInput = 1 << 7,
+	WrapAround = 1 << 8,
+	ClampOnInput = 1 << 9,
+	ClampZeroRange = 1 << 10,
+	NoSpeedTweaks = 1 << 11,
+	AlwaysClamp = ImGuiSliderFlags.ClampOnInput | ImGuiSliderFlags.ClampZeroRange,
+	InvalidMask_ = 0x7000000F,
+}
+
+/**
+	* @enum ImGuiMouseButton
+	* @desc Identify a mouse button.
+	*
+	*/
+enum ImGuiMouseButton {
+	Left = 0,
+	Right = 1,
+	Middle = 2,
+	COUNT = 5,
+}
+
+/**
+	* @enum ImGuiMouseCursor
+	* @desc Enumeration for GetMouseCursor()
+	*
+	*/
+enum ImGuiMouseCursor {
+	None = - 1,
+	Arrow = 0,
+	TextInput,
+	ResizeAll,
+	ResizeNS,
+	ResizeEW,
+	ResizeNESW,
+	ResizeNWSE,
+	Hand,
+	Wait,
+	Progress,
+	NotAllowed,
+}
+
+/**
+	* @enum ImGuiMouseSource
+	* @desc Enumeration for AddMouseSourceEvent() actual source of Mouse Input data.
+	*
+	*/
+enum ImGuiMouseSource {
+	Mouse = 0,
+	TouchScreen,
+	Pen,
+}
+
+/**
+	* @enum ImGuiCond
+	* @desc Enumeration for ImGui::SetNextWindow***(), SetWindow***(), SetNextItem***() functions
+	*
+	*/
+enum ImGuiCond {
+	None = 0,
+	Always = 1 << 0,
+	Once = 1 << 1,
+	FirstUseEver = 1 << 2,
+	Appearing = 1 << 3,
+}
+
+/**
+	* @enum ImGuiTableFlags
+	* @desc Flags for ImGui::BeginTable()
+	*
+	*/
+enum ImGuiTableFlags {
+	None = 0,
+	Resizable = 1 << 0,
+	Reorderable = 1 << 1,
+	Hideable = 1 << 2,
+	Sortable = 1 << 3,
+	NoSavedSettings = 1 << 4,
+	ContextMenuInBody = 1 << 5,
+	RowBg = 1 << 6,
+	BordersInnerH = 1 << 7,
+	BordersOuterH = 1 << 8,
+	BordersInnerV = 1 << 9,
+	BordersOuterV = 1 << 10,
+	BordersH = ImGuiTableFlags.BordersInnerH | ImGuiTableFlags.BordersOuterH,
+	BordersV = ImGuiTableFlags.BordersInnerV | ImGuiTableFlags.BordersOuterV,
+	BordersInner = ImGuiTableFlags.BordersInnerV | ImGuiTableFlags.BordersInnerH,
+	BordersOuter = ImGuiTableFlags.BordersOuterV | ImGuiTableFlags.BordersOuterH,
+	Borders = ImGuiTableFlags.BordersInner | ImGuiTableFlags.BordersOuter,
+	NoBordersInBody = 1 << 11,
+	NoBordersInBodyUntilResize = 1 << 12,
+	SizingFixedFit = 1 << 13,
+	SizingFixedSame = 2 << 13,
+	SizingStretchProp = 3 << 13,
+	SizingStretchSame = 4 << 13,
+	NoHostExtendX = 1 << 16,
+	NoHostExtendY = 1 << 17,
+	NoKeepColumnsVisible = 1 << 18,
+	PreciseWidths = 1 << 19,
+	NoClip = 1 << 20,
+	PadOuterX = 1 << 21,
+	NoPadOuterX = 1 << 22,
+	NoPadInnerX = 1 << 23,
+	ScrollX = 1 << 24,
+	ScrollY = 1 << 25,
+	SortMulti = 1 << 26,
+	SortTristate = 1 << 27,
+	HighlightHoveredColumn = 1 << 28,
+	SizingMask_ = ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.SizingFixedSame | ImGuiTableFlags.SizingStretchProp | ImGuiTableFlags.SizingStretchSame,
+}
+
+/**
+	* @enum ImGuiTableColumnFlags
+	* @desc Flags for ImGui::TableSetupColumn()
+	*
+	*/
+enum ImGuiTableColumnFlags {
+	None = 0,
+	Disabled = 1 << 0,
+	DefaultHide = 1 << 1,
+	DefaultSort = 1 << 2,
+	WidthStretch = 1 << 3,
+	WidthFixed = 1 << 4,
+	NoResize = 1 << 5,
+	NoReorder = 1 << 6,
+	NoHide = 1 << 7,
+	NoClip = 1 << 8,
+	NoSort = 1 << 9,
+	NoSortAscending = 1 << 10,
+	NoSortDescending = 1 << 11,
+	NoHeaderLabel = 1 << 12,
+	NoHeaderWidth = 1 << 13,
+	PreferSortAscending = 1 << 14,
+	PreferSortDescending = 1 << 15,
+	IndentEnable = 1 << 16,
+	IndentDisable = 1 << 17,
+	AngledHeader = 1 << 18,
+	IsEnabled = 1 << 24,
+	IsVisible = 1 << 25,
+	IsSorted = 1 << 26,
+	IsHovered = 1 << 27,
+	WidthMask_ = ImGuiTableColumnFlags.WidthStretch | ImGuiTableColumnFlags.WidthFixed,
+	IndentMask_ = ImGuiTableColumnFlags.IndentEnable | ImGuiTableColumnFlags.IndentDisable,
+	StatusMask_ = ImGuiTableColumnFlags.IsEnabled | ImGuiTableColumnFlags.IsVisible | ImGuiTableColumnFlags.IsSorted | ImGuiTableColumnFlags.IsHovered,
+	NoDirectResize_ = 1 << 30,
+}
+
+/**
+	* @enum ImGuiTableRowFlags
+	* @desc Flags for ImGui::TableNextRow()
+	*
+	*/
+enum ImGuiTableRowFlags {
+	None = 0,
+	Headers = 1 << 0,
+}
+
+/**
+	* @enum ImGuiTableBgTarget
+	* @desc Enum for ImGui::TableSetBgColor()
+	*
+	*/
+enum ImGuiTableBgTarget {
+	None = 0,
+	RowBg0 = 1,
+	RowBg1 = 2,
+	CellBg = 3,
+}
+
+/**
+	* @enum ImGuiListClipperFlags
+	* @desc Flags for ImGuiListClipper (currently not fully exposed in function calls: a future refactor will likely add this to ImGuiListClipper::Begin function equivalent)
+	*
+	*/
+enum ImGuiListClipperFlags {
+	None = 0,
+	NoSetTableRowCounters = 1 << 0,
+}
+
+/**
+	* @enum ImGuiMultiSelectFlags
+	* @desc Multi-selection system
+	*
+	*/
+enum ImGuiMultiSelectFlags {
+	None = 0,
+	SingleSelect = 1 << 0,
+	NoSelectAll = 1 << 1,
+	NoRangeSelect = 1 << 2,
+	NoAutoSelect = 1 << 3,
+	NoAutoClear = 1 << 4,
+	NoAutoClearOnReselect = 1 << 5,
+	BoxSelect1d = 1 << 6,
+	BoxSelect2d = 1 << 7,
+	BoxSelectNoScroll = 1 << 8,
+	ClearOnEscape = 1 << 9,
+	ClearOnClickVoid = 1 << 10,
+	ScopeWindow = 1 << 11,
+	ScopeRect = 1 << 12,
+	SelectOnClick = 1 << 13,
+	SelectOnClickRelease = 1 << 14,
+	NavWrapX = 1 << 16,
+}
+
+/**
+	* @enum ImGuiSelectionRequestType
+	* @desc Selection request type
+	*
+	*/
+enum ImGuiSelectionRequestType {
+	None = 0,
+	SetAll,
+	SetRange,
+}
+
+/**
+	* @enum ImDrawFlags
+	* @desc Flags for ImDrawList functions
+	*
+	*/
+enum ImDrawFlags {
+	None = 0,
+	Closed = 1 << 0,
+	RoundCornersTopLeft = 1 << 4,
+	RoundCornersTopRight = 1 << 5,
+	RoundCornersBottomLeft = 1 << 6,
+	RoundCornersBottomRight = 1 << 7,
+	RoundCornersNone = 1 << 8,
+	RoundCornersTop = ImDrawFlags.RoundCornersTopLeft | ImDrawFlags.RoundCornersTopRight,
+	RoundCornersBottom = ImDrawFlags.RoundCornersBottomLeft | ImDrawFlags.RoundCornersBottomRight,
+	RoundCornersLeft = ImDrawFlags.RoundCornersBottomLeft | ImDrawFlags.RoundCornersTopLeft,
+	RoundCornersRight = ImDrawFlags.RoundCornersBottomRight | ImDrawFlags.RoundCornersTopRight,
+	RoundCornersAll = ImDrawFlags.RoundCornersTopLeft | ImDrawFlags.RoundCornersTopRight | ImDrawFlags.RoundCornersBottomLeft | ImDrawFlags.RoundCornersBottomRight,
+	RoundCornersDefault_ = ImDrawFlags.RoundCornersAll,
+	RoundCornersMask_ = ImDrawFlags.RoundCornersAll | ImDrawFlags.RoundCornersNone,
+}
+
+/**
+	* @enum ImDrawListFlags
+	* @desc Flags for ImDrawList instance. Those are set automatically by ImGui:: functions from ImGuiIO settings, and generally not manipulated directly.
+	*
+	*/
+enum ImDrawListFlags {
+	None = 0,
+	AntiAliasedLines = 1 << 0,
+	AntiAliasedLinesUseTex = 1 << 1,
+	AntiAliasedFill = 1 << 2,
+	AllowVtxOffset = 1 << 3,
+}
+
+/**
+	* @enum ImTextureFormat
+	* @desc X11 headers are leaking this.
+	*
+	*/
+enum ImTextureFormat {
+	RGBA32,
+	Alpha8,
+}
+
+/**
+	* @enum ImTextureStatus
+	* @desc Status of a texture to communicate with Renderer Backend.
+	*
+	*/
+enum ImTextureStatus {
+	OK,
+	Destroyed,
+	WantCreate,
+	WantUpdates,
+	WantDestroy,
+}
+
+/**
+	* @enum ImFontAtlasFlags
+	* @desc Flags for ImFontAtlas build
+	*
+	*/
+enum ImFontAtlasFlags {
+	None = 0,
+	NoPowerOfTwoHeight = 1 << 0,
+	NoMouseCursors = 1 << 1,
+	NoBakedLines = 1 << 2,
+}
+
+/**
+	* @enum ImFontFlags
+	* @desc Font flags
+	*
+	*/
+enum ImFontFlags {
+	None = 0,
+	NoLoadError = 1 << 1,
+	NoLoadGlyphs = 1 << 2,
+	LockBakedSizes = 1 << 3,
+}
+
+/**
+	* @enum ImGuiViewportFlags
+	* @desc Flags stored in ImGuiViewport::Flags, giving indications to the platform backends.
+	*
+	*/
+enum ImGuiViewportFlags {
+	None = 0,
+	IsPlatformWindow = 1 << 0,
+	IsPlatformMonitor = 1 << 1,
+	OwnedByApp = 1 << 2,
+	NoDecoration = 1 << 3,
+	NoTaskBarIcon = 1 << 4,
+	NoFocusOnAppearing = 1 << 5,
+	NoFocusOnClick = 1 << 6,
+	NoInputs = 1 << 7,
+	NoRendererClear = 1 << 8,
+	NoAutoMerge = 1 << 9,
+	TopMost = 1 << 10,
+	CanHostOtherWindows = 1 << 11,
+	IsMinimized = 1 << 12,
+	IsFocused = 1 << 13,
+}
+```

@@ -1,0 +1,11 @@
+{
+  "$GMNotes":"v1",
+  "%Name":"ImGui_API.md",
+  "name":"ImGui_API.md",
+  "parent":{
+    "name":"ImGuiGML",
+    "path":"ImGuiGML.yyp",
+  },
+  "resourceType":"GMNotes",
+  "resourceVersion":"2.0",
+}

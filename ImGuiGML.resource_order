@@ -1,0 +1,12 @@
+{
+  "FolderOrderSettings":[
+    {"name":"Example","order":3,"path":"folders/Example.yy",},
+    {"name":"Sprites","order":1,"path":"folders/Example/Sprites.yy",},
+  ],
+  "ResourceOrderSettings":[
+    {"name":"ImGui_API.md","order":4,"path":"notes/ImGui_API.md/ImGui_API.md.yy",},
+    {"name":"Object1","order":2,"path":"objects/Object1/Object1.yy",},
+    {"name":"Script1","order":1,"path":"scripts/Script1/Script1.yy",},
+    {"name":"spr_example2","order":1,"path":"sprites/spr_example2/spr_example2.yy",},
+  ],
+}
