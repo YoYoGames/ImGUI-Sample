@@ -96,5 +96,6 @@ Text and layout · buttons (regular, small, invisible, arrow, colour) · images,
 ## Credits
 
 - [Dear ImGui](https://github.com/ocornut/imgui) by Omar Cornut.
-- The demo layout is adapted from [knno/ImGM](https://github.com/knno/ImGM); the DockBuilder setup follows [this gist by Aidan Sun](https://gist.github.com/AidanSun05/953f1048ffe5699800d2c92b88c36d9f).
+- The demo layout is adapted from [knno/ImGM](https://github.com/knno/ImGM) which was heavily inspired and based on Nommiin's [ImGui_GM](https://github.com/nommiin/imgui_gm);
+- The DockBuilder setup follows [this gist by Aidan Sun](https://gist.github.com/AidanSun05/953f1048ffe5699800d2c92b88c36d9f).
 - Bundled fonts (Noto Sans, Roboto) are licensed under Apache-2.0 — see `datafiles/fonts/LICENSE.txt`.
