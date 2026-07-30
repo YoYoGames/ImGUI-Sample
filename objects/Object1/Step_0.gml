@@ -135,7 +135,7 @@ if (main_status.open) {
             ImGui.Image(spr_example, 0, col2);
             if (ImGui.IsItemHovered()) {
                 ImGui.BeginTooltip();
-                ImGui.Text("Artwork by @Snoozercreation on Twitter!");
+                ImGui.Text("Artwork from Pixel Protagonists Asset Bundle");
                 ImGui.EndTooltip();
             }
 
@@ -143,7 +143,7 @@ if (main_status.open) {
             var _col = col4.Color();
             var _cola = col4.Alpha();
             if (ImGui.ImageButton("img_btn", spr_example, 0, c_white, 1, _col, _cola)) {
-                show_message_async("nice, you clicked the red panda button :O");
+                show_message_async("nice, you clicked the ImageButton");
             }
 
             ImGui.Text("ImGui::Surface");
