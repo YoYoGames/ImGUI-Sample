@@ -29,17 +29,12 @@ global.glyph_ranges = {
 	// ...
 }
 
-/// ImGui fonts: Add the default and a custom font with glyph ranges (Unicode)
-global.font_default = ImGui.AddFontDefault();
-
-/// ImGui fonts: create a font from a TTF file
-global.font_noto = ImGui.AddFontFromFileTTF("assets/fonts/NotoSans-Main.ttf", 20, {},
-	array_concat(global.glyph_ranges.english, global.glyph_ranges.cyrillic)
-);
-
-
-
-IMGM_VERSION = ImGui.GetVersion();
+/// ImGui functions can only be called while an ImGui frame is open (Step/Draw events),
+/// so the fonts and version are set up on the first Step - see the top of the Step event
+imgui_ready = false;
+global.font_default = undefined;
+global.font_noto = undefined;
+IMGM_VERSION = "";
 
 // Demos
 demo_imgui = false; // ImGui demo window
@@ -49,7 +44,7 @@ demo_open = true;
 
 // MultiSelect
 multi_select_selection_size = 40;
-multi_select_selection = new ImGuiSelectionBasicStorage();
+multi_select_selection = undefined; // created on the first Step: its constructor calls ImGui
 
 randomize();
 

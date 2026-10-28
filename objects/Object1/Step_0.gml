@@ -1,3 +1,20 @@
+/// ImGui setup: runs once, on the first Step, because ImGui calls need an open ImGui frame
+if (!imgui_ready) {
+	imgui_ready = true;
+
+	/// ImGui fonts: Add the default and a custom font with glyph ranges (Unicode)
+	global.font_default = ImGui.AddFontDefault();
+
+	/// ImGui fonts: create a font from a TTF file
+	global.font_noto = ImGui.AddFontFromFileTTF("assets/fonts/NotoSans-Main.ttf", 20, {},
+		array_concat(global.glyph_ranges.english, global.glyph_ranges.cyrillic)
+	);
+
+	IMGM_VERSION = ImGui.GetVersion();
+
+	/// MultiSelect storage (its constructor calls ImGui)
+	multi_select_selection = new ImGuiSelectionBasicStorage();
+}
 
 ImGui.BeginMainMenuBar();
 if (ImGui.BeginMenu("File")) {
